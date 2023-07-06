@@ -9,6 +9,7 @@ target_sources(go-error PRIVATE
     src/go/error.hpp
     src/go/error.cpp
     src/go/error_string.hpp
+    src/go/error_code.hpp
     src/go/errorf.hpp
 )
 target_include_directories(go-error PUBLIC

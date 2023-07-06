@@ -1,6 +1,7 @@
 #include <go/error.hpp>
 #include <go/error_string.hpp>
 #include <go/errorf.hpp>
+#include <go/error_code.hpp>
 
 #include <iostream>
 #include <sstream>
@@ -84,6 +85,15 @@ int main()
 	{
 		std::cout << "no game error!" << '\n';
 	}
+
+
+	auto ec = std::make_error_code(std::errc::operation_canceled);
+	go::error_code ecErr(ec);
+	go::error ecErr2(ecErr);
+
+	std::cout << "ecErr == ecErr2 : " << (ecErr == ecErr2) << '\n';
+	std::cout << "ecErr == ec : " << (ecErr.data()->code() == ec) << '\n';
+
 
 	return 0;
 }
