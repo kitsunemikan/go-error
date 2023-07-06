@@ -3,6 +3,7 @@
 #include <go/errorf.hpp>
 
 #include <iostream>
+#include <sstream>
 
 int main()
 {
@@ -20,6 +21,13 @@ int main()
 	std::cout << "err1 == eagain: " << (errEagain1 == eagain) << '\n';
 	std::cout << "err1 == eof: " << (errEagain1 == eof) << '\n';
 	std::cout << "err1 == err2: " << (errEagain1 == errEagain2) << '\n';
+
+	std::cout << "erragain = " << eagain << '\n';
+	std::cout << "err1 = " << errEagain1 << '\n';
+
+	go::error customErr = go::errorf("receive frame: ", eagain);
+	std::cout << "customErr = " << customErr.message() << '\n';
+	std::cout << "customErr == err1 : " << (customErr == errEagain1) << '\n';
 
 	return 0;
 }

@@ -70,3 +70,12 @@ bool operator!=(const ErrorA& a, const ErrorB& b)
 {
 	return !(a == b);
 }
+
+template <
+	class Error,
+	class = std::enable_if<std::is_base_of_v<go::errorlike, Error>>::type
+>
+std::ostream& operator<<(std::ostream& os, const Error& err)
+{
+	return os << err.message();
+}
