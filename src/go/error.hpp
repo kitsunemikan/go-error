@@ -29,6 +29,16 @@ namespace go
 			err_ = err.data();
 		}
 
+		error_of(const std::shared_ptr<Impl>& underlying)
+		{
+			err_ = underlying;
+		}
+
+		error_of(std::shared_ptr<Impl>& underlying)
+		{
+			err_ = underlying;
+		}
+
 		template <
 			class... Ts,
 			class = std::enable_if<!std::is_same_v<Impl, error_interface>>::type

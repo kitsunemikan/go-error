@@ -2,9 +2,11 @@
 #include <go/error_string.hpp>
 #include <go/errorf.hpp>
 #include <go/error_code.hpp>
+#include <go/error_cast.hpp>
 
 #include <iostream>
 #include <sstream>
+#include <optional>
 
 void load_images(go::error& err)
 {
@@ -86,7 +88,6 @@ int main()
 		std::cout << "no game error!" << '\n';
 	}
 
-
 	auto ec = std::make_error_code(std::errc::operation_canceled);
 	go::error_code ecErr(ec);
 	go::error ecErr2(ecErr);
@@ -94,6 +95,16 @@ int main()
 	std::cout << "ecErr == ecErr2 : " << (ecErr == ecErr2) << '\n';
 	std::cout << "ecErr == ec : " << (ecErr.data()->code() == ec) << '\n';
 
+	if (auto ecErr3 = go::error_cast<go::error_code>(ecErr2))
+	{
+		std::cout << "ecErr3 == ec : " << (ecErr3.data()->code() == ec) << '\n';
+		std::cout << "ecErr3 == ecErr : " << (ecErr3 == ecErr) << '\n';
+		std::cout << "ecErr3 == ecErr2 : " << (ecErr3 == ecErr2) << '\n';
+	}
+	else
+	{
+		std::cout << "Couldn't cast error back to error_code\n";
+	}
 
 	return 0;
 }
