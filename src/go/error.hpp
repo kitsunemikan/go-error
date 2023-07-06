@@ -12,75 +12,68 @@ namespace go
 		virtual ~error_interface() noexcept = default;
 	};
 
-	struct errorlike
+	template <class Impl>
+	struct error_of
 	{
-		virtual std::shared_ptr<error_interface> bare_error() const = 0;
-		virtual std::string message() const = 0;
-		virtual ~errorlike() noexcept = default;
+		using impl_type = Impl;
 
-		operator bool()
-		{
-			return bare_error().get() != nullptr;
-		}
-	};
+		error_of() = default;
 
-	struct error : public errorlike
-	{
-		error() = default;
-
+		// TODO: is A base of A?
 		template<
-			class Error,
-			class = std::enable_if<std::is_base_of_v<errorlike, Error>>::type
+			class OtherImpl,
+			class = std::enable_if<std::is_base_of_v<Impl, OtherImpl>>::type
 		>
-		error(const Error& err)
+		error_of(const error_of<OtherImpl>& err)
 		{
-			err_ = err.bare_error();
+			err_ = err.data();
 		}
 
-		std::shared_ptr<error_interface> bare_error() const override
+		template <
+			class... Ts,
+			class = std::enable_if<!std::is_same_v<Impl, error_interface>>::type
+		>
+		explicit error_of(Ts&&... args)
 		{
-			return err_;
+			err_ = std::make_shared<Impl>(std::forward<Ts>(args)...);
 		}
 
-		std::string message() const override
+		operator bool() const noexcept
+		{
+			return err_.get() != nullptr;
+		}
+
+		std::string message() const
 		{
 			return err_->message();
 		}
 
+		std::shared_ptr<Impl> data() const
+		{
+			return err_;
+		}
+
 	private:
-		std::shared_ptr<error_interface> err_;
+		std::shared_ptr<Impl> err_;
 	};
+
+	using error = error_of<error_interface>;
 }
 
-template<
-	class ErrorA,
-	class ErrorB,
-	class = std::enable_if<
-		std::is_base_of_v<go::errorlike, ErrorA> && std::is_base_of_v<go::errorlike, ErrorB>
-	>::type
->
-bool operator==(const ErrorA& a, const ErrorB& b)
+template <class A, class B>
+bool operator==(const go::error_of<A> &a, const go::error_of<B>& b)
 {
-	return a.bare_error().get() == b.bare_error().get();
+	return a.data().get() == b.data().get();
 }
 
-template<
-	class ErrorA,
-	class ErrorB,
-	class = std::enable_if<
-		std::is_base_of_v<go::errorlike, ErrorA> && std::is_base_of_v<go::errorlike, ErrorB>
-	>::type
->
-bool operator!=(const ErrorA& a, const ErrorB& b)
+template <class A, class B>
+bool operator!=(const go::error_of<A> &a, const go::error_of<B>& b)
 {
 	return !(a == b);
 }
 
-template <
-	class Error,
-	class = std::enable_if<std::is_base_of_v<go::errorlike, Error>>::type
->
-std::ostream& operator<<(std::ostream& os, const Error& err)
+template <class Impl>
+std::ostream& operator<<(std::ostream& os, const go::error_of<Impl>& err)
 {
 	return os << err.message();
 }
