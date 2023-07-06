@@ -5,11 +5,46 @@
 #include <iostream>
 #include <sstream>
 
+void load_images(go::error& err)
+{
+	err = go::errorf("open 'sprite.png': file doesn't exist");
+}
+
+void load_game(go::error& err)
+{
+	err = go::error();
+
+	load_images(err);
+	if (err)
+	{
+		err = go::errorf("load images: ", err);
+		return;
+	}
+}
+
+go::error load_images2()
+{
+	return go::errorf("open 'sprite.png': file doesn't exist");
+}
+
+go::error load_game2()
+{
+	auto imgErr = load_images2();
+	if (imgErr)
+	{
+		return go::errorf("load images: ", imgErr);
+	}
+
+	return {};
+}
+
 int main()
 {
 	//
 	// Features:
 	// 1. Compare error (same ptr)
+	// 2. Unwrap (as, is)
+	// 3. Multierror
 
 	go::error_string eagain("Try again later");
 	go::error_string eof("End of file");
@@ -28,6 +63,27 @@ int main()
 	go::error customErr = go::errorf("receive frame: ", eagain);
 	std::cout << "customErr = " << customErr.message() << '\n';
 	std::cout << "customErr == err1 : " << (customErr == errEagain1) << '\n';
+
+	go::error gameErr;
+	load_game(gameErr);
+	if (gameErr)
+	{
+		std::cout << "error: load game: " << gameErr << '\n';
+	}
+	else
+	{
+		std::cout << "no game error!" << '\n';
+	}
+
+	auto gameErr2 = load_game2();
+	if (gameErr2)
+	{
+		std::cout << "error: load game: " << gameErr2 << '\n';
+	}
+	else
+	{
+		std::cout << "no game error!" << '\n';
+	}
 
 	return 0;
 }

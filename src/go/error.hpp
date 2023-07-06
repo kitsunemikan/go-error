@@ -17,6 +17,11 @@ namespace go
 		virtual std::shared_ptr<error_interface> bare_error() const = 0;
 		virtual std::string message() const = 0;
 		virtual ~errorlike() noexcept = default;
+
+		operator bool()
+		{
+			return bare_error().get() != nullptr;
+		}
 	};
 
 	struct error : public errorlike
@@ -79,3 +84,4 @@ std::ostream& operator<<(std::ostream& os, const Error& err)
 {
 	return os << err.message();
 }
+
