@@ -1,4 +1,6 @@
 #include <go/error.hpp>
+#include <go/error_string.hpp>
+#include <go/errorf.hpp>
 
 #include <iostream>
 
