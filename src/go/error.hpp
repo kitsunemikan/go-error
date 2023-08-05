@@ -17,9 +17,7 @@ namespace go
 	{
 		using impl_type = Impl;
 
-		error_of() = default;
-
-		// TODO: is A base of A?
+				// TODO: is A base of A?
 		template<
 			class OtherImpl,
 			class = std::enable_if<std::is_base_of_v<Impl, OtherImpl>>::type
@@ -40,13 +38,22 @@ namespace go
 		}
 
 		template <
+			class T,
 			class... Ts,
 			class = std::enable_if<!std::is_same_v<Impl, error_interface>>::type
 		>
-		explicit error_of(Ts&&... args)
+		explicit error_of(T&& arg1, Ts&&... args)
 		{
-			err_ = std::make_shared<Impl>(std::forward<Ts>(args)...);
+			err_ = std::make_shared<Impl>(std::forward<T>(arg1), std::forward<Ts>(args)...);
 		}
+
+		error_of()
+		{
+			if (!std::is_same_v<Impl, error_interface>)
+				err_ = std::make_shared<Impl>();
+		}
+
+		~error_of() = default;
 
 		operator bool() const noexcept
 		{
