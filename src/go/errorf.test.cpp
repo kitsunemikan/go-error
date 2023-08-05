@@ -50,6 +50,12 @@ int main()
 
 			expect(err1 != err2);
 		};
+
+		should("the same allocation should equal to itself (not crash)") = [] {
+			auto err = go::errorf("test");
+
+			expect(err == err);
+		};
 	};
 	return 0;
 }
