@@ -17,8 +17,14 @@ target_include_directories(go-error PUBLIC
     src/
 )
 
-add_executable(go-error-test)
-target_sources(go-error-test PRIVATE
-    src/go-error-test.main.cpp
+add_library(ut INTERFACE
+    vendor/boost/ut.hpp
 )
-target_link_libraries(go-error-test PRIVATE go-error)
+target_include_directories(ut INTERFACE vendor/)
+# MSVC is bogus with modules right now...
+target_compile_definitions(ut INTERFACE BOOST_UT_DISABLE_MODULE)
+target_compile_features(ut INTERFACE cxx_std_20)
+
+add_executable(basic-test
+    src/basic.test.cpp)
+target_link_libraries(basic-test PRIVATE go-error ut)
