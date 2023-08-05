@@ -16,17 +16,7 @@ endif()
 # was not yet created.
 set(all_tests_target_created FALSE)
 
-# add_our_test creates a new executable target.
-# It's name will be the name provided in the argument plus '-test' suffix.
-#
-# Additionally, as soon as first test is defined, a test aggregating
-# target is created, that will execute all of the project's tests
-# using CTest.
-function(add_our_test name)
-    add_executable(${name}-test)
-    target_link_libraries(${name}-test PRIVATE ut)
-    add_test(NAME ${name} COMMAND ${name}-test)
-
+function(add_test_suite_dependency target)
     # Create a run-all target for tests, when creating the first test for the current project.
     # ctest should never compile the tests themselves, because we lose the progress feedback
     # from the IDEs and bulid systems. Instead we add CMake target dependencies to this
@@ -38,5 +28,32 @@ function(add_our_test name)
             WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
     endif()
 
-    add_dependencies(all-tests ${name}-test)
+    add_dependencies(all-tests ${target})
+endfunction()
+
+# add_our_test creates a new executable target.
+# It's name will be the name provided in the argument plus '-test' suffix.
+#
+# Additionally, as soon as first test is defined, a test aggregating
+# target is created, that will execute all of the project's tests
+# using CTest.
+function(add_our_test name)
+    add_executable(test-${name})
+    target_link_libraries(test-${name} PRIVATE ut)
+    add_test(NAME ${name} COMMAND test-${name})
+
+    # !!! Copypaste of add_test_suite_dependency
+    # Because we can only get all_test_target_created var from
+    # the parent context and in a recursive call the parent scopy
+    # will be the scope of this function and not the global scope,
+    # so the flag will net be able to be updated
+
+    if(NOT ${all_tests_target_created})
+        set(all_tests_target_created TRUE PARENT_SCOPE)
+        add_custom_target(all-tests
+            ctest --output-on-failure --test-dir ${CMAKE_BINARY_DIR} -C "$<CONFIG>"
+            WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+    endif()
+
+    add_dependencies(all-tests test-${name})
 endfunction()
