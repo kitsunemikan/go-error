@@ -20,6 +20,7 @@ target_sources(go-error PRIVATE
     src/go/error_code.hpp
     src/go/error_cast.hpp
     src/go/errorf.hpp
+    src/go/wrap.hpp
 )
 target_include_directories(go-error PUBLIC
     src/
@@ -45,6 +46,10 @@ if (${BUILD_TESTING})
     add_our_test(error-cast)
     target_sources(test-error-cast PUBLIC src/go/error_cast.test.cpp)
     target_link_libraries(test-error-cast PRIVATE go-error)
+
+    add_our_test(wrap)
+    target_sources(test-wrap PUBLIC src/go/wrap.test.cpp)
+    target_link_libraries(test-wrap PRIVATE go-error)
 
     add_executable(example-custom-error)
     target_sources(example-custom-error PUBLIC _examples/example_custom_error.main.cpp)

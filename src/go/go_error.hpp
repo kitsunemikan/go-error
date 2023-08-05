@@ -5,3 +5,4 @@
 #include <go/error_code.hpp>
 #include <go/error_cast.hpp>
 #include <go/errorf.hpp>
+#include <go/wrap.hpp>
