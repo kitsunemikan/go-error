@@ -40,3 +40,7 @@ target_link_libraries(errorf-test PRIVATE go-error ut)
 add_executable(error-code-test
     src/go/error_code.test.cpp)
 target_link_libraries(error-code-test PRIVATE go-error ut)
+
+add_executable(error-cast-test
+    src/go/error_cast.test.cpp)
+target_link_libraries(error-cast-test PRIVATE go-error ut)
