@@ -25,6 +25,18 @@ target_include_directories(ut INTERFACE vendor/)
 target_compile_definitions(ut INTERFACE BOOST_UT_DISABLE_MODULE)
 target_compile_features(ut INTERFACE cxx_std_20)
 
-add_executable(basic-test
-    src/basic.test.cpp)
-target_link_libraries(basic-test PRIVATE go-error ut)
+add_executable(error-test
+    src/go/error.test.cpp)
+target_link_libraries(error-test PRIVATE go-error ut)
+
+add_executable(error-string-test
+    src/go/error_string.test.cpp)
+target_link_libraries(error-string-test PRIVATE go-error ut)
+
+add_executable(errorf-test
+    src/go/errorf.test.cpp)
+target_link_libraries(errorf-test PRIVATE go-error ut)
+
+add_executable(error-code-test
+    src/go/error_code.test.cpp)
+target_link_libraries(error-code-test PRIVATE go-error ut)
