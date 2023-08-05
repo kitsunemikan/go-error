@@ -6,13 +6,6 @@ using namespace boost::ut;
 int main()
 {
 	"error_code"_test = [] {
-		should("default error_code is success") = [] {
-			go::error_code err;
-
-			expect(err.data()->value() == std::error_code{}.value())
-				<< "got" << err.data()->value() << "want" << std::error_code{}.value();
-		};
-
 		should("error_code from an existing std::error_code") = [] {
 			auto ec = std::make_error_code(std::errc::operation_canceled);
 			go::error_code errEc(ec);

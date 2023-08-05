@@ -69,14 +69,14 @@ int main()
 		should("default constructed error returns false in ifs") = [] {
 			go::error err;
 
-			expect(!err);
+			expect(err == false);
 		};
 
 		should("errors with a value return true in ifs") = [] {
-			go::error_string errStr;
+			go::error_string errStr("");
 			go::error err(errStr);
 
-			expect(err);
+			expect(err == true);
 		};
 	};
 
