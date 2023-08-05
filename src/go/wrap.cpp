@@ -13,46 +13,60 @@ namespace go
 		if (err && !target)
 			return false;
 
-		static std::vector<error> errWalk(4); // 4 is arbitrary
+		struct dfsStep
+		{
+			error err;
+			int nextChildId;
+		};
+		static std::vector<dfsStep> errWalk(4); // 4 is arbitrary
 
 		errWalk.resize(1);
-		errWalk[0] = err;
+		errWalk[0] = {err, 0};
 
-		int errId = 0;
-		while (errId < errWalk.size())
+		while (!errWalk.empty())
 		{
-			auto& errRef = errWalk[errId];
+			auto& errRef = errWalk.back();
 
-			if (!errRef)
+			if (!errRef.err)
 			{
-				errId++;
+				errWalk.pop_back();
 				continue;
 			}
 
-			if (errRef == target)
+			if (errRef.err == target)
 				return true;
 
-			if (errRef.is(target))
+			if (errRef.err.is(target))
 				return true;
 
-			auto unwrapped = errRef.unwrap();
+			go::error unwrapped;
+
+			// Skip checking unwrap if we already know that
+			// unwrap_multiple is implemented
+			if (errRef.nextChildId == 0)
+				unwrapped = errRef.err.unwrap();
+
 			if (unwrapped)
 			{
-				errRef = unwrapped;
+				errRef = {unwrapped, 0};
 				continue;
 			}
 
-			auto& unwrappedErrs = errRef.unwrap_multiple();
+			auto& unwrappedErrs = errRef.err.unwrap_multiple();
 			if (unwrappedErrs.size() == 0)
 			{
-				errId++;
+				errWalk.pop_back();
 				continue;
 			}
 
-			errRef = unwrappedErrs[0];
+			if (errRef.nextChildId == unwrappedErrs.size())
+			{
+				errWalk.pop_back();
+				continue;
+			}
 
-			for (size_t i = 1; i < unwrappedErrs.size(); i++)
-				errWalk.push_back(unwrappedErrs[i]);
+			errWalk.push_back({unwrappedErrs[errRef.nextChildId], 0});
+			errRef.nextChildId++;
 		}
 
 		return false;
