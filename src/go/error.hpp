@@ -3,12 +3,28 @@
 #include <type_traits>
 #include <string>
 #include <memory>
+#include <vector>
 
 namespace go
 {
+	template <class Impl>
+	struct error_of;
+
+	struct error_interface;
+
+	using error = error_of<error_interface>;
+
 	struct error_interface
 	{
 		virtual std::string message() const = 0;
+
+		virtual error unwrap() const;
+
+		/// For the is and as functions to use `unwrap_multi`, `unwrap` should return empty error
+		virtual const std::vector<error>& unwrap_multiple() const;
+
+		virtual bool is(error other) const;
+
 		virtual ~error_interface() noexcept = default;
 	};
 
@@ -18,13 +34,15 @@ namespace go
 	template <class Impl>
 	struct error_of
 	{
+		static_assert(std::is_base_of_v<error_interface, Impl>,
+			"error implementation should inherit from error_interface");
+
 		using impl_type = Impl;
 
 		error_of() = default;
 
 		~error_of() = default;
 
-		// TODO: is A base of A?
 		template<
 			class OtherImpl,
 			class = std::enable_if<std::is_base_of_v<Impl, OtherImpl>>::type
@@ -61,12 +79,30 @@ namespace go
 
 		std::string message() const
 		{
+			if (!err_)
+				return "<nil>";
+
 			return err_->message();
 		}
 
 		std::shared_ptr<Impl> data() const
 		{
 			return err_;
+		}
+
+		error unwrap() const
+		{
+			return err_->unwrap();
+		}
+
+		const std::vector<error>& unwrap_multiple() const
+		{
+			return err_->unwrap_multiple();
+		}
+
+		bool is(error other) const
+		{
+			return err_->is(other);
 		}
 
 	private:
