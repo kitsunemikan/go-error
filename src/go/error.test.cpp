@@ -65,6 +65,19 @@ int main()
 			expect(err.message() == ss.str())
 				<< "got" << ss.str() << "want" << err.message();
 		};
+
+		should("default constructed error returns false in ifs") = [] {
+			go::error err;
+
+			expect(!err);
+		};
+
+		should("errors with a value return true in ifs") = [] {
+			go::error_string errStr;
+			go::error err(errStr);
+
+			expect(err);
+		};
 	};
 
 	return 0;

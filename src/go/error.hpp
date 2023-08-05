@@ -12,12 +12,19 @@ namespace go
 		virtual ~error_interface() noexcept = default;
 	};
 
+	// Any concrete type can also be null, that's really important
+	// because concrete type and generic type correlate to an interface
+	// and an actual pointer: *MyError and error.
 	template <class Impl>
 	struct error_of
 	{
 		using impl_type = Impl;
 
-				// TODO: is A base of A?
+		error_of() = default;
+
+		~error_of() = default;
+
+		// TODO: is A base of A?
 		template<
 			class OtherImpl,
 			class = std::enable_if<std::is_base_of_v<Impl, OtherImpl>>::type
@@ -46,14 +53,6 @@ namespace go
 		{
 			err_ = std::make_shared<Impl>(std::forward<T>(arg1), std::forward<Ts>(args)...);
 		}
-
-		error_of()
-		{
-			if (!std::is_same_v<Impl, error_interface>)
-				err_ = std::make_shared<Impl>();
-		}
-
-		~error_of() = default;
 
 		operator bool() const noexcept
 		{

@@ -8,11 +8,7 @@ namespace go
 	{
 		struct error_string : public error_interface
 		{
-			error_string() = default;
-
-			error_string(const std::string& msg) :
-				msg(msg)
-			{}
+			error_string(const std::string& msg) : msg(msg) {}
 
 			std::string message() const override {
 				return msg;
