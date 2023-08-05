@@ -48,6 +48,11 @@ int main()
 	// 1. Compare error (same ptr)
 	// 2. Unwrap (as, is)
 	// 3. Multierror
+	//
+	// Bonus:
+	// 1. Doxygen docs
+	// 2. Benchmarks
+	// 3. errorf custom fmt lib instead of std::stringstream (make benches)
 
 	go::error_string eagain("Try again later");
 	go::error_string eof("End of file");
