@@ -56,6 +56,12 @@ int main()
 
 			expect(text == ss.str()) << "got" << ss.str() << "want" << text;
 		};
+
+		should("error_string default constructor inits with empty message") = [] {
+			go::error_string err{};
+
+			expect(err.message() == "") << "got" << err.message() << "want empty string";
+		};
     };
 
 	auto ec = std::make_error_code(std::errc::operation_canceled);

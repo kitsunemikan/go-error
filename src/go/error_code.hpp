@@ -11,6 +11,8 @@ namespace go
 	{
 		struct error_code : public error_interface
 		{
+			error_code() = default;
+
 			explicit error_code(const std::error_code& ec) :
 				ec_(ec)
 			{}
