@@ -67,6 +67,16 @@ namespace go
 			err_ = err.data();
 		}
 
+		template<
+			class OtherImpl,
+			class = std::enable_if<std::is_base_of_v<Impl, OtherImpl>>::type
+		>
+		error_of(error_of<OtherImpl>&& err)
+		{
+			err_ = err.data();
+			err = {};
+		}
+
 		error_of(const std::shared_ptr<Impl>& underlying)
 		{
 			err_ = underlying;
@@ -149,6 +159,32 @@ bool operator!=(const go::error_of<A> &a, const go::error_of<B>& b)
 {
 	return !(a == b);
 }
+
+/*
+template <class Impl, class Ptr>
+bool operator==(const go::error_of<Impl> &a, Ptr*& b)
+{
+	return a.data().get() == b;
+}
+
+template <class Impl, class Ptr>
+bool operator!=(const go::error_of<Impl> &a, Ptr*& b)
+{
+	return !(a == b);
+}
+
+template <class Impl, class Ptr>
+bool operator==(Ptr*& a, const go::error_of<Impl> &b)
+{
+	return a == b.data().get();
+}
+
+template <class Impl, class Ptr>
+bool operator!=(Ptr*& a, const go::error_of<Impl> &b)
+{
+	return !(a == b);
+}
+*/
 
 template <class Impl>
 std::ostream& operator<<(std::ostream& os, const go::error_of<Impl>& err)
