@@ -121,7 +121,8 @@ using error_multi = go::error_of<error_multi_data>;
 using error_T = go::error_of<error_T_data>;
 using error_fs_path = go::error_of<error_fs_path_data>;
 
-auto poserPathErr = error_fs_path{ "poser" };
+auto poserPathErr = error_fs_path("poser");
+auto poserErrT = error_T("poser");
 
 struct error_poser_data : public go::error_interface, public go::as_interfaces<error_T, error_fs_path>
 {
@@ -149,7 +150,7 @@ struct error_poser_data : public go::error_interface, public go::as_interfaces<e
 
 	void as(error_T& err) const override
 	{
-		err = error_T("poser");
+		err = poserErrT;
 	}
 
 	void as(error_fs_path& err) const override
@@ -192,8 +193,11 @@ void asTestCase(go::error err, bool wantMatch, go::error wantTarget)
 		if (gotMatch == wantMatch && wantMatch == false)
 			return;
 
+		auto wantTargetTyped = go::error_cast<Target>(wantTarget);
+		if (!wantTargetTyped)
+			expect(false) << "couldn't cast test case to the desired concrete value";
 
-		expect(go::is_error(target, wantTarget)) << "got" << target.message() << "want" << wantTarget.message();
+		expect(target == wantTargetTyped) << "got" << target << "want" << wantTarget;
 	};
 }
 
@@ -266,43 +270,45 @@ int main()
 		auto [_, errF] = openFile("non-existing");
 		error_poser poserErr("oh no", nilPoserFn);
 
+		error_T errA("a"), errB("b"), errT("T");
+
 		asTestCase<error_fs_path>({}, false, {});
 		asTestCase<error_T>(
-			error_wrapped("pitied the fool", error_T("T")),
+			error_wrapped("pitied the fool", errT),
 			true,
-			error_T("T"));
+			errT);
 		asTestCase<error_fs_path>(errF, true, errF);
 		asTestCase<error_fs_path>(error_T(), false, {});
 		asTestCase<error_T>(error_wrapped("wrapped", go::error()), false, {});
-		asTestCase<error_T>(error_poser("error", nilPoserFn), true, error_T("poser"));
+		asTestCase<error_T>(error_poser("error", nilPoserFn), true, poserErrT);
 		asTestCase<error_fs_path>(error_poser("path", nilPoserFn), true, poserPathErr);
 		asTestCase<error_poser>(poserErr, true, poserErr);
-		//asTestCase<can_timeout*>(go::errorf("err"), false, {});
-		//asTestCase<can_timeout*>(errF, true, errF);
-		//asTestCase<can_timeout*>(error_wrapped("path error", errF), true, errF);
+		asTestCase<can_timeout*>(go::errorf("err"), false, {});
+		asTestCase<can_timeout*>(errF, true, errF);
+		asTestCase<can_timeout*>(error_wrapped("path error", errF), true, errF);
 		asTestCase<error_T>(error_multi(), false, {});
 		asTestCase<error_T>(
-			error_multi(go::errorf("a"), error_T("T")),
+			error_multi(go::errorf("a"), errT),
 			true,
-			error_T("T"));
+			errT);
 		asTestCase<error_T>(
-			error_multi(error_T("T"), go::errorf("a")),
+			error_multi(errT, go::errorf("a")),
 			true,
-			error_T("T"));
+			errT);
 		asTestCase<error_T>(
-			error_multi(error_T("a"), error_T("b")),
+			error_multi(errA, errB),
 			true,
-			error_T("a"));
+			errA);
 		asTestCase<error_T>(
 			error_multi(
-				error_multi(go::errorf("a"), error_T("a")),
-				error_T("b")),
+				error_multi(go::errorf("a"), errA),
+				errB),
 			true,
-			error_T("a"));
-		//asTestCase<can_timeout*>(
-		//	error_multi(error_wrapped("path error", errF)),
-		//	true,
-		//	errF);
+			errA);
+		asTestCase<can_timeout*>(
+			error_multi(error_wrapped("path error", errF)),
+			true,
+			errF);
 		asTestCase<error_T>(
 			error_multi(go::error()),
 			false,
