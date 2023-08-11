@@ -6,25 +6,22 @@
 #include <boost/ut.hpp>
 using namespace boost::ut;
 
-namespace impl
+struct error_my_1_data : public go::error_interface
 {
-	struct error_my_1 : public go::error_interface
-	{
-		std::string message() const override { return "my_error_1"; }
-	};
+	std::string message() const override { return "my_error_1"; }
+};
 
-	struct error_my_2 : public error_my_1
-	{
-		static inline const char* msg = "my_error_2";
+struct error_my_2_data : public error_my_1_data
+{
+	static inline const char* msg = "my_error_2";
 
-		// TODO: hack until #14 is fixed
-		error_my_2(bool v) {};
-		std::string message() const override { return msg; }
-	};
-}
+	// TODO: hack until #14 is fixed
+	error_my_2_data(bool v) {};
+	std::string message() const override { return msg; }
+};
 
-using error_my_1 = go::error_of<impl::error_my_1>;
-using error_my_2 = go::error_of<impl::error_my_2>;
+using error_my_1 = go::error_of<error_my_1_data>;
+using error_my_2 = go::error_of<error_my_2_data>;
 
 int main()
 {
@@ -49,17 +46,30 @@ int main()
 			expect(errCastedBad == false) << "got a valid error from an incompatible cast, want null error";
 		};
 
-		should("cast to an intermediate type in the inheritance hierarchy succeeds") = [&] {
+		should("cast to an intermediate type in the inheritance hierarchy succeeds") = [] {
 			error_my_2 errMy2(true);
 			go::error err(errMy2);
 
 			auto errMy2Cast = go::error_cast<error_my_2>(err);
 			expect(errMy2Cast == true) << "got cast to parent type failure, want success";
+			expect(errMy2Cast == errMy2) << "casted error differs from original at address level";
 
 			auto errMy1Cast = go::error_cast<error_my_1>(err);
-			expect(errMy1Cast == true) << "got cat to intermediate type failure, want success";
+			expect(errMy1Cast == true) << "got cast to intermediate type failure, want success";
+			expect(errMy1Cast == errMy2) << "intermediate cast differs from parent at address level";
 			expect(errMy1Cast.message() == error_my_2::impl_type::msg)
 				<< "got msg from a casted intermediate error:" << errMy1Cast.message() << "want equal to the parent msg" << error_my_2::impl_type::msg;
+		};
+
+		should("cast to a raw impl pointer in hierarchy succeeds") = [] {
+			error_my_2 errMy2(true);
+			go::error err(errMy2);
+
+			error_my_2_data* rawImpl2 = go::error_cast<error_my_2_data*>(err);
+			expect(rawImpl2 == errMy2.data().get()) << "casted impl ptr differs from actual impl ptr";
+
+			error_my_1_data* rawImpl1 = go::error_cast<error_my_1_data*>(err);
+			expect(rawImpl1 == errMy2.data().get()) << "casted intermediate impl ptr differs from actual impl ptr";
 		};
 	};
 
