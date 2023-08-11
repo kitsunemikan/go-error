@@ -28,6 +28,21 @@ namespace go
 		virtual ~error_interface() noexcept = default;
 	};
 
+	template <class Target>
+	struct as_interface
+	{
+		virtual void as(Target&) const = 0;
+	};
+
+	template <class... Targets>
+	struct as_interfaces;
+
+	template <class Target, class... Rest>
+	struct as_interfaces<Target, Rest...> : public as_interface<Target>, public as_interfaces<Rest...> {};
+
+	template <>
+	struct as_interfaces<> {};
+
 	// Any concrete type can also be null, that's really important
 	// because concrete type and generic type correlate to an interface
 	// and an actual pointer: *MyError and error.
@@ -103,6 +118,17 @@ namespace go
 		bool is(error other) const
 		{
 			return err_->is(other);
+		}
+
+		template <class Target>
+		bool as(Target& target) const
+		{
+			auto ptr = dynamic_cast<as_interface<Target>*>(err_.get());
+			if (!ptr)
+				return false;
+
+			ptr->as(target);
+			return true;
 		}
 
 	private:
