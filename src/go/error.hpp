@@ -28,20 +28,17 @@ namespace go
 		virtual ~error_interface() noexcept = default;
 	};
 
+	template <class... Targets>
+	struct as_interface;
+
+	template <class Target, class... Rest>
+	struct as_interface<Target, Rest...> : public as_interface<Target>, public as_interface<Rest...> {};
+
 	template <class Target>
-	struct as_interface
+	struct as_interface<Target>
 	{
 		virtual void as(Target&) const = 0;
 	};
-
-	template <class... Targets>
-	struct as_interfaces;
-
-	template <class Target, class... Rest>
-	struct as_interfaces<Target, Rest...> : public as_interface<Target>, public as_interfaces<Rest...> {};
-
-	template <>
-	struct as_interfaces<> {};
 
 	// Any concrete type can also be null, that's really important
 	// because concrete type and generic type correlate to an interface

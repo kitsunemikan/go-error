@@ -124,7 +124,7 @@ using error_fs_path = go::error_of<error_fs_path_data>;
 auto poserPathErr = error_fs_path("poser");
 auto poserErrT = error_T("poser");
 
-struct error_poser_data : public go::error_interface, public go::as_interfaces<error_T, error_fs_path>
+struct error_poser_data : public go::error_interface, public go::as_interface<error_T, error_fs_path>
 {
 	std::string msg;
 	std::function<bool(go::error)> f;
