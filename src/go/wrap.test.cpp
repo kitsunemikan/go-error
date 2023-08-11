@@ -6,6 +6,9 @@ using namespace boost::ut;
 #include <string>
 #include <vector>
 #include <functional>
+#include <fstream>
+#include <filesystem>
+#include <system_error>
 
 struct error_wrapped_data : public go::error_interface
 {
@@ -27,24 +30,24 @@ struct error_wrapped_data : public go::error_interface
 	}
 };
 
-struct error_poser_data : public go::error_interface
+struct error_T_data : public go::error_interface
 {
-	std::string msg;
-	std::function<bool(go::error)> f;
+	std::string s;
 
-	error_poser_data(std::string msg, std::function<bool(go::error)> f) :
-		msg(msg), f(std::move(f))
-	{}
-
-	std::string message() const override
-	{
-		return msg;
-
-	}
+	explicit error_T_data(std::string s) : s(s) {}
 
 	bool is(go::error other) const override
 	{
-		return f(other);
+		auto otherMe = go::error_cast<go::error_of<error_T_data>>(other);
+		if (!otherMe)
+			return false;
+
+		return s == otherMe.data()->s;
+	}
+
+	std::string message() const override
+	{
+		return "error_T(" + s + ")";
 	}
 };
 
@@ -74,9 +77,125 @@ struct error_multi_data : public go::error_interface
 	}
 };
 
+struct can_timeout
+{
+	virtual bool timeout() = 0;
+	virtual ~can_timeout() = default;
+};
+
+// PathError records an error and the operation and file path that caused it.
+struct error_fs_path_data : public go::error_interface, public can_timeout
+{
+	std::string op, path;
+	go::error err;
+
+	error_fs_path_data() = default;
+	~error_fs_path_data() noexcept = default;
+
+	explicit error_fs_path_data(std::string op, std::string path = "", go::error err = {}) :
+		op(op), path(path), err(err)
+	{}
+
+	std::string message() const override
+	{
+		return op + " " + path + ": " + err.message();
+	}
+
+	go::error unwrap() const override
+	{
+		return err;
+	}
+
+	bool timeout() override
+	{
+		auto timeoutErr = dynamic_cast<can_timeout*>(err.data().get());
+		if (!timeoutErr)
+			return false;
+
+		return timeoutErr->timeout();
+	}
+};
+
 using error_wrapped = go::error_of<error_wrapped_data>;
-using error_poser = go::error_of<error_poser_data>;
 using error_multi = go::error_of<error_multi_data>;
+using error_T = go::error_of<error_T_data>;
+using error_fs_path = go::error_of<error_fs_path_data>;
+
+auto poserPathErr = error_fs_path{ "poser" };
+
+struct error_poser_data : public go::error_interface, public go::as_interfaces<error_T, error_fs_path>
+{
+	std::string msg;
+	std::function<bool(go::error)> f;
+
+	error_poser_data(std::string msg, std::function<bool(go::error)> f) :
+		msg(msg), f(std::move(f))
+	{}
+
+	std::string message() const override
+	{
+		return msg;
+
+	}
+
+	bool is(go::error other) const override
+	{
+		return f(other);
+	}
+
+	// TODO: no access to the shared ptr of _data classes
+	// so can't set other errors to ourselves.
+	// Although it may be redundant
+
+	void as(error_T& err) const override
+	{
+		err = error_T("poser");
+	}
+
+	void as(error_fs_path& err) const override
+	{
+		err = poserPathErr;
+	}
+};
+
+using error_poser = go::error_of<error_poser_data>;
+
+std::pair<std::ifstream, go::error> openFile(std::filesystem::path name)
+{
+	if (name.empty())
+	{
+		auto ec = std::make_error_code(std::errc::no_such_file_or_directory);
+		return { std::ifstream{}, error_fs_path("open", name.string(), go::error_code(ec))};
+	}
+
+	std::error_code ec;
+	auto status = std::filesystem::status(name, ec);
+	if (ec)
+	{
+		return { std::ifstream{}, error_fs_path("open: get status", name.string(), go::error_code(ec))};
+	}
+
+	return { std::ifstream(name.string()), go::error() };
+}
+
+template <class Target>
+void asTestCase(go::error err, bool wantMatch, go::error wantTarget)
+{
+	std::stringstream ss;
+	ss << err << " AS " << wantTarget << " (" << (wantMatch ? "ok" : "no") << ")";
+
+	should(ss.str().c_str()) = [&]() {
+		Target target;
+		bool gotMatch = go::as_error(err, target);
+		expect(gotMatch == wantMatch) << "got" << gotMatch << "want" << wantMatch;
+
+		if (gotMatch == wantMatch && wantMatch == false)
+			return;
+
+
+		expect(go::is_error(target, wantTarget)) << "got" << target.message() << "want" << wantTarget.message();
+	};
+}
 
 int main()
 {
@@ -137,6 +256,57 @@ int main()
 					<< "is(" << test.err << "," << test.target << ") =" << got << ", want" << test.match;
 			};
 		}
+	};
+
+	"as"_test = []
+	{
+		auto nilPoserFn = [](go::error) -> bool { std::terminate(); return false; };
+		can_timeout* timeout;
+		error_poser p;
+		auto [_, errF] = openFile("non-existing");
+		error_poser poserErr("oh no", nilPoserFn);
+
+		asTestCase<error_fs_path>({}, false, {});
+		asTestCase<error_T>(
+			error_wrapped("pitied the fool", error_T("T")),
+			true,
+			error_T("T"));
+		asTestCase<error_fs_path>(errF, true, errF);
+		asTestCase<error_fs_path>(error_T(), false, {});
+		asTestCase<error_T>(error_wrapped("wrapped", go::error()), false, {});
+		asTestCase<error_T>(error_poser("error", nilPoserFn), true, error_T("poser"));
+		asTestCase<error_fs_path>(error_poser("path", nilPoserFn), true, poserPathErr);
+		asTestCase<error_poser>(poserErr, true, poserErr);
+		//asTestCase<can_timeout*>(go::errorf("err"), false, {});
+		//asTestCase<can_timeout*>(errF, true, errF);
+		//asTestCase<can_timeout*>(error_wrapped("path error", errF), true, errF);
+		asTestCase<error_T>(error_multi(), false, {});
+		asTestCase<error_T>(
+			error_multi(go::errorf("a"), error_T("T")),
+			true,
+			error_T("T"));
+		asTestCase<error_T>(
+			error_multi(error_T("T"), go::errorf("a")),
+			true,
+			error_T("T"));
+		asTestCase<error_T>(
+			error_multi(error_T("a"), error_T("b")),
+			true,
+			error_T("a"));
+		asTestCase<error_T>(
+			error_multi(
+				error_multi(go::errorf("a"), error_T("a")),
+				error_T("b")),
+			true,
+			error_T("a"));
+		//asTestCase<can_timeout*>(
+		//	error_multi(error_wrapped("path error", errF)),
+		//	true,
+		//	errF);
+		asTestCase<error_T>(
+			error_multi(go::error()),
+			false,
+			{});
 	};
 
 	return 0;
