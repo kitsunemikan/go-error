@@ -6,9 +6,15 @@
 #include <boost/ut.hpp>
 using namespace boost::ut;
 
-struct error_my_1_data : public go::error_interface
+struct my_interface
+{
+	virtual void my_func() = 0;
+};
+
+struct error_my_1_data : public go::error_interface, public my_interface
 {
 	std::string message() const override { return "my_error_1"; }
+	void my_func() override {}
 };
 
 struct error_my_2_data : public error_my_1_data
@@ -70,6 +76,19 @@ int main()
 
 			error_my_1_data* rawImpl1 = go::error_cast<error_my_1_data*>(err);
 			expect(rawImpl1 == errMy2.data().get()) << "casted intermediate impl ptr differs from actual impl ptr";
+		};
+
+		should("cast to a raw arbitrary base pointer") = [] {
+			auto data = std::make_shared<error_my_2_data>(true);
+			auto rawWant = dynamic_cast<my_interface*>(data.get());
+
+			expect(rawWant != nullptr) << "couldn't cast data pointer to my_interface, test assertion failed";
+
+			error_my_2 errMy2(data);
+			go::error err(errMy2);
+
+			my_interface* rawGot = go::error_cast<my_interface*>(err);
+			expect(rawGot == rawWant) << "raw pointers differ";
 		};
 	};
 
