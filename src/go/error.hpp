@@ -130,6 +130,8 @@ namespace go
 		template <class Target>
 		bool as(Target& target) const
 		{
+			// Check that our error Impl type implemented as_interface for
+			// custom `as` behavior
 			auto ptr = dynamic_cast<as_interface<Target>*>(err_.get());
 			if (!ptr)
 				return false;
