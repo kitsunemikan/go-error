@@ -209,7 +209,7 @@ void asValidationTestCase(go::error err, Target&& value, const char* valueType)
 {
 	try
 	{
-		expect(!go::as_error(err, value)) << "got as_error(err, valueType) = true, want false";
+		expect(!go::as_error(err, std::forward<Target>(value))) << "got as_error(err, " << valueType << ") = true, want false";
 	}
 	catch (...)
 	{
@@ -282,6 +282,7 @@ int main()
 	{
 		auto nilPoserFn = [](go::error) -> bool { std::terminate(); return false; };
 		can_timeout* timeout;
+		void* any;
 		error_poser p;
 		auto [_, errF] = openFile("non-existing");
 		error_poser poserErr("oh no", nilPoserFn);
@@ -302,6 +303,7 @@ int main()
 		asTestCase<can_timeout*>(go::errorf("err"), false, {});
 		asTestCase<can_timeout*>(errF, true, errF);
 		asTestCase<can_timeout*>(error_wrapped("path error", errF), true, errF);
+		asTestCase<void*>(errF, true, errF);
 		asTestCase<error_T>(error_multi(), false, {});
 		asTestCase<error_T>(
 			error_multi(go::errorf("a"), errT),
@@ -338,10 +340,18 @@ int main()
 		std::string str;
 		char* ch = new char[6]("ababa");
 
-		asValidationTestCase(err, (void*)nullptr, "void*");
-		asValidationTestCase(err, (int*)nullptr, "int*");
-		asValidationTestCase(err, "error", "const char*");
-		asValidationTestCase(err, str, "std::string");
+		// Won't compile not an lvalue
+		//asValidationTestCase(err, static_cast<void*>(nullptr), "void*");
+
+		// Won't compile, not viable for dynamic cast
+		//asValidationTestCase(err, (int*)nullptr, "int*");
+		//asValidationTestCase(err, ch, "const char*");
+
+		// Won't compile, string is not convertible to bool
+		//asValidationTestCase(err, str, "std::string");
+
+		struct { operator bool() { return true; } }* omg{};
+		asValidationTestCase(err, omg, "OMG type");
 	};
 
 	return 0;

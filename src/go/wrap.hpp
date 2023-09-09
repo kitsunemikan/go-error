@@ -33,7 +33,7 @@ namespace go
 					continue;
 				}
 
-				auto targetCandidate = error_cast<std::remove_reference_t<To>>(errRef.err);
+				auto targetCandidate = error_cast<To>(errRef.err);
 				if (targetCandidate)
 				{
 					target = targetCandidate;
@@ -80,11 +80,15 @@ namespace go
 
 	bool is_error(error err, error target);
 
+	// To must be convertible to bool
+	// To must be supported by error_cast
 	template <class To>
 	bool as_error(error err, To& target)
 	{
 		static_assert(!std::is_const_v<To>, "as_error modifies target and expects it to be non-const");
+		static_assert(std::is_convertible_v<To, bool>, "as_error expects target to be convertible to bool");
+		static_assert(std::is_class_v<std::remove_pointer_t<std::remove_cv_t<To>>> || std::is_same_v<std::remove_cv_t<To>, void*>, "as_error expects target's type to be viable dynamic_cast target");
 
-		detail::as_error(err, target);
+		return detail::as_error(err, target);
 	}
 }

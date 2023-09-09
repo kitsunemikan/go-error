@@ -17,9 +17,10 @@ namespace go
 				static constexpr bool value = false;
 			};
 
-			static_assert(always_false<To>::value, "unsupported error_cast");
-
-			static To cast(const error_of<From>&) {}
+			static To cast(const error_of<From>&)
+			{
+				static_assert(always_false<To>::value, "unsupported error_cast");
+			}
 		};
 
 		template <class ToImpl, class From>
