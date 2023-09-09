@@ -57,7 +57,7 @@ namespace go
 
 		template<
 			class OtherImpl,
-			class = std::enable_if<std::is_base_of_v<Impl, OtherImpl>>::type
+			class = std::enable_if_t<std::is_base_of_v<Impl, OtherImpl>>
 		>
 		error_of(const error_of<OtherImpl>& err)
 		{
@@ -66,7 +66,7 @@ namespace go
 
 		template<
 			class OtherImpl,
-			class = std::enable_if<std::is_base_of_v<Impl, OtherImpl>>::type
+			class = std::enable_if_t<std::is_base_of_v<Impl, OtherImpl>>
 		>
 		error_of(error_of<OtherImpl>&& err)
 		{
@@ -87,7 +87,7 @@ namespace go
 		template <
 			class T,
 			class... Ts,
-			class = std::enable_if<!std::is_same_v<Impl, error_interface>>::type
+			class = std::enable_if_t<!std::is_same_v<Impl, error_interface>>
 		>
 		explicit error_of(T&& arg1, Ts&&... args)
 		{
