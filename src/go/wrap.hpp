@@ -47,7 +47,7 @@ namespace go
 			go::error unwrapped;
 
 			// Skip checking unwrap if we already know that
-			// unwrap_multiple is implemented
+			// unwrap_multiple is implemented (nextChildId is not 0)
 			if (errRef.nextChildId == 0)
 				unwrapped = errRef.err.unwrap();
 
