@@ -5,75 +5,86 @@
 
 namespace go
 {
+	namespace detail
+	{
+		template <class To>
+		bool as_error(error err, To& target)
+		{
+			if (!err)
+				return false;
+
+			struct dfsStep
+			{
+				error err;
+				int nextChildId;
+			};
+			static std::vector<dfsStep> errWalk(4); // 4 is arbitrary
+
+			errWalk.resize(1);
+			errWalk[0] = {err, 0};
+
+			while (!errWalk.empty())
+			{
+				auto& errRef = errWalk.back();
+
+				if (!errRef.err)
+				{
+					errWalk.pop_back();
+					continue;
+				}
+
+				auto targetCandidate = error_cast<std::remove_reference_t<To>>(errRef.err);
+				if (targetCandidate)
+				{
+					target = targetCandidate;
+					return true;
+				}
+
+				bool customAs = errRef.err.as(target);
+				if (customAs)
+					return true;
+
+				go::error unwrapped;
+
+				// Skip checking unwrap if we already know that
+				// unwrap_multiple is implemented (nextChildId is not 0)
+				if (errRef.nextChildId == 0)
+					unwrapped = errRef.err.unwrap();
+
+				if (unwrapped)
+				{
+					errRef = {unwrapped, 0};
+					continue;
+				}
+
+				auto& unwrappedErrs = errRef.err.unwrap_multiple();
+				if (unwrappedErrs.size() == 0)
+				{
+					errWalk.pop_back();
+					continue;
+				}
+
+				if (errRef.nextChildId == unwrappedErrs.size())
+				{
+					errWalk.pop_back();
+					continue;
+				}
+
+				errWalk.push_back({unwrappedErrs[errRef.nextChildId], 0});
+				errRef.nextChildId++;
+			}
+
+			return false;
+		}
+	}
+
 	bool is_error(error err, error target);
 
 	template <class To>
 	bool as_error(error err, To& target)
 	{
-		if (!err)
-			return false;
+		static_assert(!std::is_const_v<To>, "as_error modifies target and expects it to be non-const");
 
-		struct dfsStep
-		{
-			error err;
-			int nextChildId;
-		};
-		static std::vector<dfsStep> errWalk(4); // 4 is arbitrary
-
-		errWalk.resize(1);
-		errWalk[0] = {err, 0};
-
-		while (!errWalk.empty())
-		{
-			auto& errRef = errWalk.back();
-
-			if (!errRef.err)
-			{
-				errWalk.pop_back();
-				continue;
-			}
-
-			auto targetCandidate = error_cast<To>(errRef.err);
-			if (targetCandidate)
-			{
-				target = targetCandidate;
-				return true;
-			}
-
-			bool customAs = errRef.err.as(target);
-			if (customAs)
-				return true;
-
-			go::error unwrapped;
-
-			// Skip checking unwrap if we already know that
-			// unwrap_multiple is implemented (nextChildId is not 0)
-			if (errRef.nextChildId == 0)
-				unwrapped = errRef.err.unwrap();
-
-			if (unwrapped)
-			{
-				errRef = {unwrapped, 0};
-				continue;
-			}
-
-			auto& unwrappedErrs = errRef.err.unwrap_multiple();
-			if (unwrappedErrs.size() == 0)
-			{
-				errWalk.pop_back();
-				continue;
-			}
-
-			if (errRef.nextChildId == unwrappedErrs.size())
-			{
-				errWalk.pop_back();
-				continue;
-			}
-
-			errWalk.push_back({unwrappedErrs[errRef.nextChildId], 0});
-			errRef.nextChildId++;
-		}
-
-		return false;
+		detail::as_error(err, target);
 	}
 }

@@ -204,6 +204,19 @@ void asTestCase(go::error err, bool wantMatch, go::error wantTarget)
 	};
 }
 
+template <class Target>
+void asValidationTestCase(go::error err, Target&& value, const char* valueType)
+{
+	try
+	{
+		expect(!go::as_error(err, value)) << "got as_error(err, valueType) = true, want false";
+	}
+	catch (...)
+	{
+		expect(false) << "as_error threw an exception on " << valueType << "value type";
+	}
+}
+
 int main()
 {
 	"is"_test = []
@@ -316,6 +329,19 @@ int main()
 			error_multi(go::error()),
 			false,
 			{});
+	};
+
+	"as validation"_test = []
+	{
+		auto err = go::errorf("error");
+
+		std::string str;
+		char* ch = new char[6]("ababa");
+
+		asValidationTestCase(err, (void*)nullptr, "void*");
+		asValidationTestCase(err, (int*)nullptr, "int*");
+		asValidationTestCase(err, "error", "const char*");
+		asValidationTestCase(err, str, "std::string");
 	};
 
 	return 0;
