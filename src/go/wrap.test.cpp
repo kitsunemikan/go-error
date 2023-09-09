@@ -405,5 +405,44 @@ int main()
 		asValidationTestCase(err, omg, "OMG type");
 	};
 
+	"unwrap"_test = []
+	{
+		should("multi unwrapping nil error returns empty array") = []
+		{
+			go::error err;
+			auto& unwrapped = err.unwrap_multiple();
+
+			expect(unwrapped.size() == 0) << "got" << unwrapped.size() << " unwrapped errors, want 0";
+		};
+
+		auto err1 = go::errorf("1");
+		auto erra = error_wrapped{ "wrap 2", err1 };
+
+		struct testCase
+		{
+			go::error err, want;
+		};
+
+		std::vector<testCase> testCases{
+			{go::error(), go::error()},
+			{error_wrapped{"wrapped", go::error()}, go::error()},
+			{err1, go::error()},
+			{erra, err1},
+			{error_wrapped{"wrap 3", erra}, erra},
+		};
+
+		for (auto&& tc : testCases)
+		{
+			std::stringstream ss;
+			ss << "Unwrap(" << tc.err << ") = " << tc.want;
+
+			should(ss.str().c_str()) = [&]
+			{
+				auto unwrapped = tc.err.unwrap();
+				expect(unwrapped == tc.want);
+			};
+		}
+	};
+
 	return 0;
 }

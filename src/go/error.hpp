@@ -140,11 +140,19 @@ namespace go
 
 		error unwrap() const
 		{
+			if (!err_)
+				return error();
+
 			return err_->unwrap();
 		}
 
 		const std::vector<error>& unwrap_multiple() const
 		{
+			static std::vector<error> empty{};
+
+			if (!err_)
+				return empty;
+
 			return err_->unwrap_multiple();
 		}
 
