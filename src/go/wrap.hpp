@@ -8,152 +8,155 @@ namespace go
 	namespace detail
 	{
 
-		template <class To>
-		bool is_error(error err, To& target)
+		struct wrapping_impl
 		{
-			if (!err && !target)
-				return true;
-
-			if (!err && target)
-				return false;
-
-			if (err && !target)
-				return false;
-
-			struct dfsStep
+			template <class To>
+			static bool is_error(error err, To& target)
 			{
-				error err;
-				int nextChildId;
-			};
-			static std::vector<dfsStep> errWalk(4); // 4 is arbitrary
-
-			errWalk.resize(1);
-			errWalk[0] = {err, 0};
-
-			while (!errWalk.empty())
-			{
-				auto& errRef = errWalk.back();
-
-				if (!errRef.err)
-				{
-					errWalk.pop_back();
-					continue;
-				}
-
-				if (errRef.err == target)
+				if (!err && !target)
 					return true;
 
-				if (errRef.err.is(target))
-					return true;
+				if (!err && target)
+					return false;
 
-				go::error unwrapped;
+				if (err && !target)
+					return false;
 
-				// Skip checking unwrap if we already know that
-				// unwrap_multiple is implemented
-				if (errRef.nextChildId == 0)
-					unwrapped = errRef.err.unwrap();
-
-				if (unwrapped)
+				struct dfsStep
 				{
-					errRef = {unwrapped, 0};
-					continue;
+					error err;
+					int nextChildId;
+				};
+				static std::vector<dfsStep> errWalk(4); // 4 is arbitrary
+
+				errWalk.resize(1);
+				errWalk[0] = {err, 0};
+
+				while (!errWalk.empty())
+				{
+					auto& errRef = errWalk.back();
+
+					if (!errRef.err)
+					{
+						errWalk.pop_back();
+						continue;
+					}
+
+					if (errRef.err == target)
+						return true;
+
+					if (errRef.err.is(target))
+						return true;
+
+					go::error unwrapped;
+
+					// Skip checking unwrap if we already know that
+					// unwrap_multiple is implemented
+					if (errRef.nextChildId == 0)
+						unwrapped = errRef.err.unwrap();
+
+					if (unwrapped)
+					{
+						errRef = {unwrapped, 0};
+						continue;
+					}
+
+					auto& unwrappedErrs = errRef.err.unwrap_multiple();
+					if (unwrappedErrs.size() == 0)
+					{
+						errWalk.pop_back();
+						continue;
+					}
+
+					if (errRef.nextChildId == unwrappedErrs.size())
+					{
+						errWalk.pop_back();
+						continue;
+					}
+
+					errWalk.push_back({unwrappedErrs[errRef.nextChildId], 0});
+					errRef.nextChildId++;
 				}
 
-				auto& unwrappedErrs = errRef.err.unwrap_multiple();
-				if (unwrappedErrs.size() == 0)
-				{
-					errWalk.pop_back();
-					continue;
-				}
-
-				if (errRef.nextChildId == unwrappedErrs.size())
-				{
-					errWalk.pop_back();
-					continue;
-				}
-
-				errWalk.push_back({unwrappedErrs[errRef.nextChildId], 0});
-				errRef.nextChildId++;
+				return false;
 			}
 
-			return false;
-		}
+			template <class To>
+			static bool as_error(error err, To& target)
+			{
+				if (!err)
+					return false;
 
-		template <class To>
-		bool as_error(error err, To& target)
-		{
-			if (!err)
+				struct dfsStep
+				{
+					error err;
+					int nextChildId;
+				};
+				static std::vector<dfsStep> errWalk(4); // 4 is arbitrary
+
+				errWalk.resize(1);
+				errWalk[0] = {err, 0};
+
+				while (!errWalk.empty())
+				{
+					auto& errRef = errWalk.back();
+
+					if (!errRef.err)
+					{
+						errWalk.pop_back();
+						continue;
+					}
+
+					auto targetCandidate = error_cast<To>(errRef.err);
+					if (targetCandidate)
+					{
+						target = targetCandidate;
+						return true;
+					}
+
+					bool customAs = errRef.err.as(target);
+					if (customAs)
+						return true;
+
+					go::error unwrapped;
+
+					// Skip checking unwrap if we already know that
+					// unwrap_multiple is implemented (nextChildId is not 0)
+					if (errRef.nextChildId == 0)
+						unwrapped = errRef.err.unwrap();
+
+					if (unwrapped)
+					{
+						errRef = {unwrapped, 0};
+						continue;
+					}
+
+					auto& unwrappedErrs = errRef.err.unwrap_multiple();
+					if (unwrappedErrs.size() == 0)
+					{
+						errWalk.pop_back();
+						continue;
+					}
+
+					if (errRef.nextChildId == unwrappedErrs.size())
+					{
+						errWalk.pop_back();
+						continue;
+					}
+
+					errWalk.push_back({unwrappedErrs[errRef.nextChildId], 0});
+					errRef.nextChildId++;
+				}
+
 				return false;
-
-			struct dfsStep
-			{
-				error err;
-				int nextChildId;
-			};
-			static std::vector<dfsStep> errWalk(4); // 4 is arbitrary
-
-			errWalk.resize(1);
-			errWalk[0] = {err, 0};
-
-			while (!errWalk.empty())
-			{
-				auto& errRef = errWalk.back();
-
-				if (!errRef.err)
-				{
-					errWalk.pop_back();
-					continue;
-				}
-
-				auto targetCandidate = error_cast<To>(errRef.err);
-				if (targetCandidate)
-				{
-					target = targetCandidate;
-					return true;
-				}
-
-				bool customAs = errRef.err.as(target);
-				if (customAs)
-					return true;
-
-				go::error unwrapped;
-
-				// Skip checking unwrap if we already know that
-				// unwrap_multiple is implemented (nextChildId is not 0)
-				if (errRef.nextChildId == 0)
-					unwrapped = errRef.err.unwrap();
-
-				if (unwrapped)
-				{
-					errRef = {unwrapped, 0};
-					continue;
-				}
-
-				auto& unwrappedErrs = errRef.err.unwrap_multiple();
-				if (unwrappedErrs.size() == 0)
-				{
-					errWalk.pop_back();
-					continue;
-				}
-
-				if (errRef.nextChildId == unwrappedErrs.size())
-				{
-					errWalk.pop_back();
-					continue;
-				}
-
-				errWalk.push_back({unwrappedErrs[errRef.nextChildId], 0});
-				errRef.nextChildId++;
 			}
-
-			return false;
-		}
+		};
 	}
 
 	template <class Against>
 	bool is_error(error err, const error_of<Against>& target)
 	{
-		return detail::is_error(err, target);
+		return detail::wrapping_impl::is_error(err, target);
 	}
 
 	// To must be convertible to bool
@@ -165,6 +168,6 @@ namespace go
 		static_assert(std::is_convertible_v<To, bool>, "as_error expects target to be convertible to bool");
 		static_assert(std::is_class_v<std::remove_pointer_t<std::remove_cv_t<To>>> || std::is_same_v<std::remove_cv_t<To>, void*>, "as_error expects target's type to be viable dynamic_cast target");
 
-		return detail::as_error(err, target);
+		return detail::wrapping_impl::as_error(err, target);
 	}
 }

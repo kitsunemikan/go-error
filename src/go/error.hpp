@@ -7,6 +7,11 @@
 
 namespace go
 {
+	namespace detail
+	{
+		struct wrapping_impl;
+	}
+
 	template <class Impl>
 	struct error_of;
 
@@ -143,6 +148,9 @@ namespace go
 			return err_->unwrap_multiple();
 		}
 
+	private:
+		std::shared_ptr<Impl> err_;
+
 		// TODO: Target&& -> class = has const and Target is ref, otherwise non-const rvalue is ok
 		template <class Target>
 		bool is(const Target& other) const
@@ -170,8 +178,10 @@ namespace go
 			return true;
 		}
 
-	private:
-		std::shared_ptr<Impl> err_;
+		// We want users to use free `is_error` and `as_error` functions
+		// instead of is and as methods that lack safety checks present
+		// in these free functions
+		friend class detail::wrapping_impl;
 	};
 
 	using error = error_of<error_interface>;
