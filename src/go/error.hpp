@@ -23,22 +23,43 @@ namespace go
 		/// For the is and as functions to use `unwrap_multi`, `unwrap` should return empty error
 		virtual const std::vector<error>& unwrap_multiple() const;
 
-		virtual bool is(error other) const;
-
 		virtual ~error_interface() noexcept = default;
 	};
 
+
+	// is_interface contains virtual 'is' methods for specified types.
+	template <class... Targets>
+	struct is_interface;
+
+	template <class Target, class... Rest>
+	struct is_interface<Target, Rest...> : public is_interface<Target>, public is_interface<Rest...> {};
+
+	// Enables custom logic in `is_error` for errors
+	// `bool is(Target&)` method is expected to immutable inspect target
+	// and return a boolean value as per error's custom logic
+	template <class Target>
+	struct is_interface<Target>
+	{
+		virtual bool is(const Target&) const = 0;
+	};
+
+
+	// as_interface contains virtual 'as' methods for specified types.
 	template <class... Targets>
 	struct as_interface;
 
 	template <class Target, class... Rest>
 	struct as_interface<Target, Rest...> : public as_interface<Target>, public as_interface<Rest...> {};
 
+	// Enables custom logic in `as_error` for errors
+	// `as(Target&)` method is expected to modify Target value as per
+	// error's custom logic. It's assumed the method always succeeds
 	template <class Target>
 	struct as_interface<Target>
 	{
 		virtual void as(Target&) const = 0;
 	};
+
 
 	// Any concrete type can also be null, that's really important
 	// because concrete type and generic type correlate to an interface
@@ -122,11 +143,20 @@ namespace go
 			return err_->unwrap_multiple();
 		}
 
-		bool is(error other) const
+		// TODO: Target&& -> class = has const and Target is ref, otherwise non-const rvalue is ok
+		template <class Target>
+		bool is(const Target& other) const
 		{
-			return err_->is(other);
+			// Check that our error Impl type implemented is_interface for
+			// custom `is` behavior
+			auto ptr = dynamic_cast<is_interface<Target>*>(err_.get());
+			if (!ptr)
+				return false;
+
+			return ptr->is(other);
 		}
 
+		// Expects an lvalue reference
 		template <class Target>
 		bool as(Target& target) const
 		{
