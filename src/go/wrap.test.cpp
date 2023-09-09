@@ -139,7 +139,6 @@ struct error_poser_data :
 	std::string message() const override
 	{
 		return msg;
-
 	}
 
 	bool is(const go::error& other) const override
@@ -163,6 +162,34 @@ struct error_poser_data :
 };
 
 using error_poser = go::error_of<error_poser_data>;
+
+struct error_poser_with_is_overload_data :
+	public go::error_interface,
+	public go::is_interface<error_wrapped, error_poser>
+{
+	std::string msg;
+
+	error_poser_with_is_overload_data(std::string msg) :
+		msg(std::move(msg))
+	{}
+
+	std::string message() const override
+	{
+		return msg;
+	}
+
+	bool is(const error_wrapped& other) const override
+	{
+		return true;
+	}
+
+	bool is(const error_poser& other) const override
+	{
+		return true;
+	}
+};
+
+using error_poser_with_is_overload = go::error_of<error_poser_with_is_overload_data>;
 
 std::pair<std::ifstream, go::error> openFile(std::filesystem::path name)
 {
@@ -232,6 +259,8 @@ int main()
 			return err == err1 || err == err3;
 		});
 
+		auto poser2 = error_poser_with_is_overload("either wrapped or poser");
+
 		struct test_case
 		{
 			go::error err, target;
@@ -276,6 +305,28 @@ int main()
 					<< "is(" << test.err << "," << test.target << ") =" << got << ", want" << test.match;
 			};
 		}
+
+		// Duplicated because these are just 3 special cases
+		should("either wrapped or poser is wrapped") = [&]
+		{
+			bool got = go::is_error(poser2, erra);
+			expect(got == true)
+				<< "is(" << poser2 << "," << erra << ") =" << got << ", want" << "true";
+		};
+
+		should("either wrapped or poser is poser") = [&]
+		{
+			bool got = go::is_error(poser2, poser);
+			expect(got == true)
+				<< "is(" << poser2 << "," << poser << ") =" << got << ", want" << "true";
+		};
+
+		should("either wrapped or poser is 1") = [&]
+		{
+			bool got = go::is_error(poser2, err1);
+			expect(got == false)
+				<< "is(" << poser2 << "," << err1 << ") =" << got << ", want" << "false";
+		};
 	};
 
 	"as"_test = []
