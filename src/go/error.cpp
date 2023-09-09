@@ -13,8 +13,4 @@ namespace go
 		return {};
 	}
 
-	bool error_interface::is(error other) const
-	{
-		return this == other.data().get();
-	}
 }

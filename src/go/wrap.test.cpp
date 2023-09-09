@@ -30,13 +30,13 @@ struct error_wrapped_data : public go::error_interface
 	}
 };
 
-struct error_T_data : public go::error_interface
+struct error_T_data : public go::error_interface, public go::is_interface<go::error>
 {
 	std::string s;
 
 	explicit error_T_data(std::string s) : s(s) {}
 
-	bool is(go::error other) const override
+	bool is(const go::error& other) const override
 	{
 		auto otherMe = go::error_cast<go::error_of<error_T_data>>(other);
 		if (!otherMe)
@@ -124,7 +124,10 @@ using error_fs_path = go::error_of<error_fs_path_data>;
 auto poserPathErr = error_fs_path("poser");
 auto poserErrT = error_T("poser");
 
-struct error_poser_data : public go::error_interface, public go::as_interface<error_T, error_fs_path>
+struct error_poser_data :
+	public go::error_interface,
+	public go::as_interface<error_T, error_fs_path>,
+	public go::is_interface<go::error>
 {
 	std::string msg;
 	std::function<bool(go::error)> f;
@@ -139,7 +142,7 @@ struct error_poser_data : public go::error_interface, public go::as_interface<er
 
 	}
 
-	bool is(go::error other) const override
+	bool is(const go::error& other) const override
 	{
 		return f(other);
 	}
