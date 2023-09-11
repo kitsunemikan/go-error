@@ -5,12 +5,13 @@ namespace go
 
 	error error_interface::unwrap() const
 	{
-		return error_of<error_interface>();
+		return {};
 	}
 
 	const std::vector<error>& error_interface::unwrap_multiple() const
 	{
-		return {};
+        static std::vector<error> dummy;
+		return dummy;
 	}
 
 }
