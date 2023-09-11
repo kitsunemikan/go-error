@@ -207,32 +207,6 @@ bool operator!=(const go::error_of<A> &a, const go::error_of<B>& b)
 	return !(a == b);
 }
 
-/*
-template <class Impl, class Ptr>
-bool operator==(const go::error_of<Impl> &a, Ptr*& b)
-{
-	return a.data().get() == b;
-}
-
-template <class Impl, class Ptr>
-bool operator!=(const go::error_of<Impl> &a, Ptr*& b)
-{
-	return !(a == b);
-}
-
-template <class Impl, class Ptr>
-bool operator==(Ptr*& a, const go::error_of<Impl> &b)
-{
-	return a == b.data().get();
-}
-
-template <class Impl, class Ptr>
-bool operator!=(Ptr*& a, const go::error_of<Impl> &b)
-{
-	return !(a == b);
-}
-*/
-
 template <class Impl>
 std::ostream& operator<<(std::ostream& os, const go::error_of<Impl>& err)
 {
