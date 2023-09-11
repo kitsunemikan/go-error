@@ -191,6 +191,18 @@ struct error_poser_with_is_overload_data :
 
 using error_poser_with_is_overload = go::error_of<error_poser_with_is_overload_data>;
 
+struct error_pure_wrapped_data : public go::error_interface
+{
+	go::error err;
+
+    error_pure_wrapped_data(go::error err) : err(std::move(err)) {}
+
+	std::string message() const override { return "pure_wrapped"; }
+	go::error unwrap() const override { return err; }
+};
+
+using error_pure_wrapped = go::error_of<error_pure_wrapped_data>;
+
 std::pair<std::ifstream, go::error> openFile(std::filesystem::path name)
 {
 	if (name.empty())
@@ -442,6 +454,19 @@ int main()
 				expect(unwrapped == tc.want);
 			};
 		}
+	};
+
+	"pure_wrapped"_test = []
+	{
+		auto err1 = go::errorf("error");
+		auto err2 = error_pure_wrapped(err1);
+		go::error errErased = err2;
+
+		auto errUnwrapped = errErased.unwrap();
+
+		expect(errUnwrapped != false) << "got nil unwrapped error, want non-nil";
+
+		expect(err1 == errUnwrapped) << "got unwrapped error differs from the original, want to be the same";
 	};
 
 	return 0;
