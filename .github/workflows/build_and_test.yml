@@ -10,8 +10,10 @@ on:
 
 jobs:
   test:
-    name: Test
-    runs-on: windows-2022
+    name: Test ${{ strategy.matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-2022, windows-2019]
     steps:
       - uses: actions/checkout@v3
 
