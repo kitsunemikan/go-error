@@ -4,20 +4,17 @@
 
 namespace go
 {
-	namespace impl
-	{
-		struct error_string : public error_interface
-		{
-			error_string(std::string msg) : msg(std::move(msg)) {}
+    struct error_string_data : public error_interface
+    {
+        error_string_data(std::string msg) : msg(std::move(msg)) {}
 
-			std::string message() const override {
-				return msg;
-			}
+        std::string message() const override {
+            return msg;
+        }
 
-		private:
-			std::string msg;
-		};
-	}
+    private:
+        std::string msg;
+    };
 
-	using error_string = go::error_of<impl::error_string>;
+	using error_string = go::error_of<error_string_data>;
 }
