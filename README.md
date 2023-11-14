@@ -9,6 +9,15 @@
 * Ability to create custom errors
 * Predefined errors: `go::error_string`, `go::error_code`
 
+### Roadmap
+
+- [ ] Port hashicorp/multierror
+- [ ] CMake subproject support
+- [ ] Usage documentation and code documentation (postponed until API stabilizes)
+- [ ] More platform/compiler compatibility tests
+- [ ] Create multiple demo programs
+- [ ] See if C++ standard can be lowered, if anybody needs that that is
+
 ### Compatibility
 
 This library is only tested against VS2022 and VS2019 edition MSVC compilers right now
