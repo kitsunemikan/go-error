@@ -153,14 +153,21 @@ namespace go
 		};
 	}
 
+    /*! \addtogroup wrapping Wrapping
+     * @{
+     */
+
+    /*! is impl
+     */
 	template <class Against>
 	bool is_error(error err, const error_of<Against>& target)
 	{
 		return detail::wrapping_impl::is_error(err, target);
 	}
 
-	// To must be convertible to bool
-	// To must be supported by error_cast
+	/*! To must be convertible to bool
+	 *  To must be supported by error_cast
+     */
 	template <class To>
 	bool as_error(error err, To& target)
 	{
@@ -170,4 +177,6 @@ namespace go
 
 		return detail::wrapping_impl::as_error(err, target);
 	}
+
+    /*! @} */
 }
