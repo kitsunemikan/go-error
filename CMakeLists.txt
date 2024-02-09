@@ -62,6 +62,7 @@ if (${GOERROR_BUILD_DOCS})
     find_package(doxygen)
 
     set(DOXYGEN_EXCLUDE_PATTERNS *.test.cpp)
+    set(DOXYGEN_WARN_AS_ERROR FAIL_ON_WARNINGS)
 
     doxygen_add_docs(
         doxygen
