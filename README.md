@@ -1,7 +1,9 @@
-## `go-error`
+## `go-error` ![Documentation status](https://codedocs.xyz/kitsunemikan/go-error.svg)
 
 `go-error` presents an alternative error API for C++ heavily based on the Go programming language error model.
 
+
+Documentation: https://codedocs.xyz/kitsunemikan/go-error/modules.html
 ### Features
 
 * Errors with context
