@@ -1,5 +1,5 @@
 ## Find GoogleTest
-if(${BUILD_TESTING})
+if(${GOERROR_BUILD_TESTING})
     include(CTest)
 
     add_library(ut INTERFACE

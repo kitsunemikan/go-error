@@ -6,9 +6,9 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "" FORCE)
 set(CMAKE_CXX_STANDARD 17)
 
-set(BUILD_TESTING ON CACHE BOOL "" FORCE)
-set(BUILD_EXAMPLES ON CACHE BOOL "" FORCE)
-set(BUILD_DOCS ON CACHE BOOL "" FORCE)
+set(GOERROR_BUILD_TESTING ON CACHE BOOL "")
+set(GOERROR_BUILD_EXAMPLES ON CACHE BOOL "")
+set(GOERROR_BUILD_DOCS ON CACHE BOOL "")
 
 include(Testing)
 
@@ -27,7 +27,7 @@ target_include_directories(go-error PUBLIC
     src/
 )
 
-if (${BUILD_TESTING})
+if (${GOERROR_BUILD_TESTING})
     add_our_test(error)
     target_sources(test-error PUBLIC src/go/error.test.cpp)
     target_link_libraries(test-error PRIVATE go-error)
@@ -58,7 +58,7 @@ if (${BUILD_TESTING})
     add_test_suite_dependency(example-custom-error)
 endif()
 
-if (${BUILD_DOCS})
+if (${GOERROR_BUILD_DOCS})
     find_package(doxygen)
 
     set(DOXYGEN_EXCLUDE_PATTERNS *.test.cpp)

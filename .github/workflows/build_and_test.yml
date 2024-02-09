@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: CMake configure
-        run: cmake -S . -B build
+        run: cmake -S . -B build -DGOERROR_BUILD_DOCS=OFF
 
       - name: Run Tests
         run: cmake --build build --target all-tests 
