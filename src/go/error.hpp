@@ -5,8 +5,6 @@
 #include <memory>
 #include <vector>
 
-
-
 namespace go
 {
 	namespace detail
@@ -24,43 +22,50 @@ namespace go
      * @{
      */
 
-    /*! \brief Core error interface to be implemented by user-defined errors.
+    /// Core error interface to be implemented by user-defined errors.
+    /*!
+     * The interface emulates interface for go's errors. The Error() method is
+     * represented by the `message()` pure virtual method, which is named to be
+     * consistent with the message() method of std::error_code.
      *
-     *  The interface emulates interface for go's errors. The Error() method is
-     *  represented by the `message()` pure virtual method, which is named to be
-     *  consistent with the message() method of std::error_code.
+     * As in go, the user can additionally implement either unwrap of unwrap_multiple
+     * methods to provide wrapping functionality. This can be used to provide nested
+     * context to the error and allow user code to decide its execution based on the
+     * inner error types. The `go::is_error` and `go::as_error` functions can be used
+     * to introspect such wrapped errors.
      *
-     *  As in go, the user can additionally implement either unwrap of unwrap_multiple
-     *  methods to provide wrapping functionality. This can be used to provide nested
-     *  context to the error and allow user code to decide its execution based on the
-     *  inner error types. The `go::is_error` and `go::as_error` functions can be used
-     *  to introspect such wrapped errors.
+     * To implement a custom error type, the user needs to define a structure, referred
+     * to as error data, that implements this interface, and then create a type alias to
+     * the error_of<T> of the error data. By convention, error data is suffixed
+     * with _data, while the alias is written without it.
      *
-     *  To implement a custom error type, the user needs to define a structure, referred
-     *  to as error data, that implements this interface, and then create a type alias to
-     *  the error_of<T> of the error data. By convention, error data is suffixed
-     *  with _data, while the alias is written without it.
-     *
-     *  It is possible to use `go::error_cast` to extract error data from an
-     *  error_of<T> error and access error data's custom methods in case user written any.
+     * It is possible to use `go::error_cast` to extract error data from an
+     * error_of<T> error and access error data's custom methods in case user written any.
      */
 	struct error_interface
 	{
+        /// Returns the error message string.
 		virtual auto message() const -> std::string = 0;
 
+        /// Returns a single wrapped error if any. Default implementation returns empty error.
 		virtual auto unwrap() const -> error;
 
-		/// For the is and as functions to use `unwrap_multi`, `unwrap` should return empty error
+		/// Returns an array of wrapped errors.
+        /*! For the `go::is_error` and `go::as_error` functions to use `unwrap_multiple`,
+         * `unwrap` should return empty error.
+         */
 		virtual auto unwrap_multiple() const -> std::vector<error> const&;
 
 		virtual ~error_interface() noexcept = default;
 	};
 
+    /*! @} */
+
     /*! \addtogroup wrapping Wrapping
      * @{
      */
 
-	/*! \brief Helper for declaring `go::is_error` customizations for multiple types at once. */
+	/// Helper for declaring `go::is_error` customizations for multiple types at once.
 	template <class... Targets>
 	struct is_interface;
 
@@ -71,19 +76,16 @@ namespace go
 
     /*! \endcond */
 
-	/*! \brief Enables custom logic in `go::is_error` for errors.
-     *
-	 *  `bool is(Target&)` method is expected to immutable inspect target
-	 *  and return a boolean value as per error's custom logic
-     */
+    /// Enables custom logic in `go::is_error` for errors.
 	template <class Target>
 	struct is_interface<Target>
 	{
+        /// Check that the target error is the current one as per custom logic.
 		virtual auto is(Target const&) const -> bool = 0;
 	};
 
 
-	/*! \brief Helper for declaring `go::as_error` customizations for multiple types at once. */
+	/// Helper for declaring `go::as_error` customizations for multiple types at once.
 	template <class... Targets>
 	struct as_interface;
 
@@ -94,14 +96,15 @@ namespace go
 
     /*! \endcond */
 
-	/*! \brief Enables custom logic in `go::as_error` for errors.
-     *
-	 *  `as(Target&)` method is expected to modify Target value as per
-	 *  error's custom logic. It's assumed the method always succeeds
-     */
+    /// Enables custom logic in `go::as_error` for errors.
 	template <class Target>
 	struct as_interface<Target>
 	{
+        /// Convert current error type to the target type and overwrite target error.
+        /*!
+         * Refer to `go::as_error` documentation for why it returns void instead of bool
+         * as in go.
+         */
 		virtual auto as(Target&) const -> void = 0;
 	};
 
@@ -111,43 +114,43 @@ namespace go
      * @{
      */
 
-	/*! \brief Core library class that implements error semantics for arbitrary error
-     *  interface implementations.
-     *  
-     *  This class is analogous to the `error` interface in go. This is in comparison
-     *  to the error data objects that represent actual implementations, like `MyError*`
-     *  and that are retrieved by type assertions, like `myErr := err.(MyError*)` in go.
+	/// \brief Core library class that implements error semantics for arbitrary error
+    /// interface implementations.
+    /*! 
+     * This class is analogous to the `error` interface in go. This is in comparison
+     * to the error data objects that represent actual implementations, like `MyError*`
+     * and that are retrieved by type assertions, like `myErr := err.(MyError*)` in go.
      *
-     *  The error type can be either empty or contain an instance of error data. As
-     *  in go, the error type may be non-empty while underlying data is null. This is
-     *  one of the quirks of the go errors that the users need to be aware of
+     * The error type can be either empty or contain an instance of error data. As
+     * in go, the error type may be non-empty while underlying data is null. This is
+     * one of the quirks of the go errors that the users need to be aware of
      *
-     *  ```
-     *  auto quirkExample() -> error {
-     *      // Zero-initialized
-     *      auto err = std::shared_ptr<MyError>();
+     * ```
+     * auto quirkExample() -> error {
+     *     // Zero-initialized
+     *     auto err = std::shared_ptr<MyError>();
      *
-     *      if (...)
-     *      {
-     *          // Updated error with value if something goes wrong
-     *          err = std::make_shared<MyError>();
-     *      }
+     *     if (...)
+     *     {
+     *         // Updated error with value if something goes wrong
+     *         err = std::make_shared<MyError>();
+     *     }
      *
-     *      // In case of no error a null MyError*
-     *      // will be converted to an non-empty error
-     *      return err
-     *  }
-     *  ```
+     *     // In case of no error a null MyError*
+     *     // will be converted to an non-empty error
+     *     return err
+     * }
+     * ```
      *
-     *  error_of has the same overhead as std::shared_ptr.
+     * error_of has the same overhead as std::shared_ptr.
      *
-     *  Two errors are equal only if their error data pointer values are equal. So even
-     *  if error data is of the same type and the same content, but of different
-     *  instances, the errors are considered to be different.
+     * Two errors are equal only if their error data pointer values are equal. So even
+     * if error data is of the same type and the same content, but of different
+     * instances, the errors are considered to be different.
      *
-     *  Errors are implicitly upcasted when needed. It is expected that users
-     *  use concrete error classes only when initializing errors or extracting
-     *  errors from generic error class.
+     * Errors are implicitly upcasted when needed. It is expected that users
+     * use concrete error classes only when initializing errors or extracting
+     * errors from generic error class.
      */
 	template <class Impl>
 	struct error_of
@@ -155,13 +158,14 @@ namespace go
 		static_assert(std::is_base_of_v<error_interface, Impl>,
 			"error implementation should inherit from error_interface");
 
+        /// Typedef for the template error data type
 		using impl_type = Impl;
 
 		error_of() = default;
 
 		~error_of() = default;
 
-        /*! \brief Copy constructor. */
+        /// Copy constructor.
 		template<
 			class OtherImpl,
 			class = std::enable_if_t<std::is_base_of_v<Impl, OtherImpl>>
@@ -171,7 +175,7 @@ namespace go
 			err_ = err.data();
 		}
 
-        /*! \brief Move constructor. */
+        /// Move constructor.
 		template<
 			class OtherImpl,
 			class = std::enable_if_t<std::is_base_of_v<Impl, OtherImpl>>
@@ -182,13 +186,13 @@ namespace go
 			err = {};
 		}
 
-        /*! \brief Construct via existing error data instance. */
+        /// Construct via existing error data instance.
 		error_of(std::shared_ptr<Impl> underlying)
 		{
 			err_ = std::move(underlying);
 		}
 
-        /*! \brief Construct via error data constructor. */
+        /// Construct via error data constructor.
 		template <
 			class T,
 			class... Ts,
@@ -199,15 +203,14 @@ namespace go
 			err_ = std::make_shared<Impl>(std::forward<T>(arg1), std::forward<Ts>(args)...);
 		}
 
-        /*! \brief False if error is empty, false otherwise. `data()` may still be null. */
+        /// False if error is empty, false otherwise. `data()` may still be null.
 		operator bool() const noexcept
 		{
 			return err_.get() != nullptr;
 		}
 
-        /*! \brief Returns error message as implemented by error data or
-         *  a nil-indicating string if error data is null.
-         */
+        /// \brief Returns error message as implemented by error data or
+        /// a nil-indicating string if error data is null.
 		auto message() const -> std::string
 		{
 			if (!err_)
@@ -216,15 +219,14 @@ namespace go
 			return err_->message();
 		}
 
-        /*! \brief Returns error data instance. */
+        /// Returns error data instance.
 		auto data() const -> std::shared_ptr<Impl>
 		{
 			return err_;
 		}
 
-        /*! \brief Returns a wrapped error or an empty error
-         *  if error data doesn't implement unwrap.
-         */
+        /// \brief Returns a wrapped error or an empty error
+        /// if error data doesn't implement unwrap.
 		auto unwrap() const -> error
 		{
 			if (!err_)
@@ -233,9 +235,8 @@ namespace go
 			return err_->unwrap();
 		}
 
-        /*! \brief Returns an array of wrapped errors or an empty array
-         *  if error data doesn't implement unwrap_multiple.
-         */
+        /// \brief Returns an array of wrapped errors or an empty array
+        /// if error data doesn't implement unwrap_multiple.
 		auto unwrap_multiple() const -> std::vector<error> const&
 		{
 			static std::vector<error> empty{};
@@ -282,32 +283,43 @@ namespace go
 		friend class detail::wrapping_impl;
 	};
 
+    /// Main error type. Expected to be returned from functions and used most of the time.
+    /*!
+     * It is analogous to go's `error` type. Users can use `go::error_cast`, `go::is_error`
+     * and `go::as_error` to introspect errors.
+     */
 	using error = error_of<error_interface>;
 
-    /*!@}*/
+    /*! @} */
 }
 
 /*! \addtogroup core
  * @{
  */
 
+/// Errors are equal only if the error data pointer addresses are equal.
 template <class A, class B>
 auto operator==(go::error_of<A> const& a, go::error_of<B> const& b) -> bool
 {
 	return a.data().get() == b.data().get();
 }
 
+/// Refer to `operator==`
 template <class A, class B>
 auto operator!=(go::error_of<A> const& a, go::error_of<B> const& b) -> bool
 {
 	return !(a == b);
 }
 
-/*! \brief Overload for std::ostream that outputs error.message() to the stream. */
+/*! \name Helper operator overloads */
+///@{
+
+/// Overload for std::ostream that outputs error.message() to the stream.
 template <class Impl>
 auto operator<<(std::ostream& os, go::error_of<Impl> const& err) -> std::ostream&
 {
 	return os << err.message();
 }
 
-/*!@}*/
+///@}
+/*! @} */

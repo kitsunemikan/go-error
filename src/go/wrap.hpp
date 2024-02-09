@@ -5,13 +5,20 @@
 
 namespace go
 {
+    /*! \cond TEMPLATE_DETAILS */
 	namespace detail
 	{
-
+        /*! \brief wrapping_impl is befriended by `go::error_of`, so that implementations
+         * of `is_error` and `as_error` have access to the private details of
+         * `go::error_of`.
+         */
 		struct wrapping_impl
 		{
+            /*! \brief `is_error` implementation that uses heap allocated stack and
+             *  depth-first search.
+             */
 			template <class To>
-			static bool is_error(error err, To& target)
+			static auto is_error(error err, To& target) -> bool
 			{
 				if (!err && !target)
 					return true;
@@ -81,8 +88,11 @@ namespace go
 				return false;
 			}
 
+            /*! \brief `as_error` implementation that uses heap allocated stack and
+             *  depth-first search.
+             */
 			template <class To>
-			static bool as_error(error err, To& target)
+			static auto as_error(error err, To& target) -> bool
 			{
 				if (!err)
 					return false;
@@ -153,23 +163,57 @@ namespace go
 		};
 	}
 
-    /*! \addtogroup wrapping Wrapping
+    /// \endcond
+
+    /*! \addtogroup wrapping
      * @{
      */
 
-    /*! is impl
+    /// `is_error` reports whether any error in err's tree matches target.
+    /*!
+     * The tree consists of err itself, followed by the errors obtained by repeatedly
+     * calling its unwrap() or unwrap_multiple() method. When err wraps multiple errors,
+     * `is_error` examines err followed by a depth-first traversal of its children.
+     *
+     * An error is considered to match a target if it is equal to that target or if
+     * it implements `is_interface` for the target type such that is(target) returns true.
+     *
+     * An error type might implement `is_interface` so it can be treated as equivalent
+     * to an existing error.
+     *
+     * An `is_interface` implementation should only shallowly compare err and the target
+     * and not unwrap either. 
      */
 	template <class Against>
-	bool is_error(error err, const error_of<Against>& target)
+	auto is_error(error err, const error_of<Against>& target) -> bool
 	{
 		return detail::wrapping_impl::is_error(err, target);
 	}
 
-	/*! To must be convertible to bool
-	 *  To must be supported by error_cast
+	/// \brief Finds the first error in err's tree that matches target, and if one is found,
+    /// sets target to that error value and returns true. Otherwise, it returns false.
+    /*!
+     * The tree consists of err itself, followed by the errors obtained by repeatedly
+     * calling its unwrap() or unwrap_multiple() method. When err wraps multiple
+     * errors, `as_error` examines err followed by a depth-first traversal of its children.
+     *
+     * An error matches target if the error's concrete value is `go::error_cast`-able to the value
+     * pointed to by target, or if the error implements `go::as_interface` for that type.
+     * In the latter case, the as method is responsible for setting target.
+     *
+     * Note that unlike go, `go::as_interface::as` method cannot fail. This is because
+     * in go the as method accepts an unknown target type that may not be supported by the
+     * error type. Thus, in such case it may return false. But in this library, types explicitly
+     * declare what target types they support, and as_error automatically finds appropriate overloads.
+     *
+     * An error type might implement an `go::as_interface` so it can be treated as if it were a
+     * different error type.
+     *
+     * `as_error` produces a compile error if target is const, not convertible to bool or
+     * isn't supported by `go::error_cast`.
      */
 	template <class To>
-	bool as_error(error err, To& target)
+	auto as_error(error err, To& target) -> bool
 	{
 		static_assert(!std::is_const_v<To>, "as_error modifies target and expects it to be non-const");
 		static_assert(std::is_convertible_v<To, bool>, "as_error expects target to be convertible to bool");
