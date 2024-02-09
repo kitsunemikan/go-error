@@ -15,7 +15,7 @@ namespace go
         error_string_data(std::string msg) : msg(std::move(msg)) {}
 
         /// Returns the string used to initialize data as-is.
-        auto message() const override -> std::string {
+        auto message() const -> std::string override {
             return msg;
         }
 

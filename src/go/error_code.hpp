@@ -39,7 +39,7 @@ namespace go
 
         /// \brief The error's message consists of `std::error_code` accompanied with
         /// an error code value in decimal.
-        auto message() const override -> std::string
+        auto message() const -> std::string override
         {
             std::stringstream ss;
             ss << ec_.message() << " (error code: " << ec_.value() << ")";
