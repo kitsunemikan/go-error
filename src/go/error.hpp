@@ -5,6 +5,8 @@
 #include <memory>
 #include <vector>
 
+#include <go/detail/meta_helpers.hpp>
+
 namespace go
 {
 	namespace detail
@@ -69,12 +71,10 @@ namespace go
 	template <class... Targets>
 	struct is_interface;
 
-    /*! \cond TEMPLATE_DETAILS */
-
+    /// \cond TEMPLATE_DETAILS
 	template <class Target, class... Rest>
 	struct is_interface<Target, Rest...> : public is_interface<Target>, public is_interface<Rest...> {};
-
-    /*! \endcond */
+    /// \endcond
 
     /// Enables custom logic in `go::is_error` for errors.
 	template <class Target>
@@ -89,12 +89,10 @@ namespace go
 	template <class... Targets>
 	struct as_interface;
 
-    /*! \cond TEMPLATE_DETAILS */
-
+    /// \cond TEMPLATE_DETAILS
 	template <class Target, class... Rest>
 	struct as_interface<Target, Rest...> : public as_interface<Target>, public as_interface<Rest...> {};
-
-    /*! \endcond */
+    /// \endcond
 
     /// Enables custom logic in `go::as_error` for errors.
 	template <class Target>
@@ -285,10 +283,9 @@ namespace go
      */
 	using error = error_of<error_interface>;
 
-
+    /// \cond TEMPLATE_DETAILS
     namespace detail
     {
-
         template <class ErrorType>
         struct make_error_impl
         {
@@ -309,9 +306,13 @@ namespace go
                 return error_of<Impl>(std::move(impl));
             }
         };
-    }
+    } // namespace detail
+    /// \endcond
 
-    /// Construct via error data constructor.
+    /// Generator function that constructs error_of types via error data constructor.
+    /*!
+     * `ErrorType` should be an instantiation of `go::error_of`.
+     */
     template <
         class ErrorType,
         class... Args
