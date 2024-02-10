@@ -247,6 +247,12 @@ namespace go
 			return err_->unwrap_multiple();
 		}
 
+        /// Operator overload to the error's data.
+        auto operator->() const -> Impl*
+        {
+            return err_.get();
+        }
+
 	private:
 		std::shared_ptr<Impl> err_;
 

@@ -1,5 +1,6 @@
 #include <go/error.hpp>
 #include <go/error_string.hpp>
+#include <go/error_code.hpp>
 
 #include <boost/ut.hpp>
 using namespace boost::ut;
@@ -78,6 +79,15 @@ int main()
 
 			expect(err == true);
 		};
+
+        should("-> operator provides access to the error data's methods") = [] {
+            auto stdCode = std::make_error_code(std::errc::operation_canceled);
+            go::error_code errCode(stdCode);
+
+            expect(errCode->code() == stdCode);
+            expect(errCode->code().message() == stdCode.message());
+            expect(errCode->value() == stdCode.value());
+        };
 	};
 
 	return 0;
