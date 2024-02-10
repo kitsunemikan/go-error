@@ -5,11 +5,20 @@
 #include <boost/ut.hpp>
 using namespace boost::ut;
 
+struct error_tag_data : public go::error_string_data
+{
+    error_tag_data() :
+        go::error_string_data("tag")
+    {}
+};
+
+using error_tag = go::error_of<error_tag_data>;
+
 int main()
 {
 	"generic error"_test = [] {
 		should("error equals to the parent error") = [] {
-			go::error_string eagain("Try again later");
+			auto eagain = go::make_error<go::error_string>("Try again later");
 			go::error err(eagain);
 
 			expect(eagain == err);
@@ -17,17 +26,17 @@ int main()
 		};
 
 		should("error doesn't equal to any concrete error other than parent") = [] {
-			go::error_string eagain("Try again later");
+			auto eagain = go::make_error<go::error_string>("Try again later");
 			go::error err(eagain);
 
-			go::error_string eagain2("Try again later");
+			auto eagain2 = go::make_error<go::error_string>("Try again later");
 
 			expect(eagain2 != err);
 			expect(err != eagain2);
 		};
 
 		should("error equals to generic errors with the same parent") = [] {
-			go::error_string eagain("Try again later");
+			auto eagain = go::make_error<go::error_string>("Try again later");
 			go::error err(eagain);
 			go::error err2(eagain);
 
@@ -36,10 +45,10 @@ int main()
 		};
 
 		should("error doesn't equal to any generic error with a different parent") = [] {
-			go::error_string eagain("Try again later");
+			auto eagain = go::make_error<go::error_string>("Try again later");
 			go::error err(eagain);
 
-			go::error_string eagain2("Try again later");
+			auto eagain2 = go::make_error<go::error_string>("Try again later");
 			go::error errOther(eagain2);
 
 			expect(err != errOther);
@@ -48,7 +57,7 @@ int main()
 
 		should("error.message() equals to the .message() of the parent") = [] {
 			auto text = "Test error";
-			go::error_string errConcrete(text);
+			auto errConcrete = go::make_error<go::error_string>(text);
 			go::error err(errConcrete);
 
 			expect(err.message() == errConcrete.message())
@@ -57,7 +66,7 @@ int main()
 
 		should("error can be ostreamed") = [] {
 			auto text = "Test error";
-			go::error_string errConcrete(text);
+			auto errConcrete = go::make_error<go::error_string>(text);
 			go::error err(errConcrete);
 
 			std::stringstream ss;
@@ -74,7 +83,7 @@ int main()
 		};
 
 		should("errors with a value return true in ifs") = [] {
-			go::error_string errStr("");
+			auto errStr = go::make_error<go::error_string>("");
 			go::error err(errStr);
 
 			expect(err == true);
@@ -82,11 +91,21 @@ int main()
 
         should("-> operator provides access to the error data's methods") = [] {
             auto stdCode = std::make_error_code(std::errc::operation_canceled);
-            go::error_code errCode(stdCode);
+            auto errCode = go::make_error<go::error_code>(stdCode);
 
             expect(errCode->code() == stdCode);
             expect(errCode->code().message() == stdCode.message());
             expect(errCode->value() == stdCode.value());
+        };
+
+        should("make_error with no arguments creates a non-empty error") = [] {
+
+            auto errCtor = error_tag();
+            auto errMade = go::make_error<error_tag>();
+
+            expect(errCtor == false);
+            expect(errMade == true);
+            expect(errMade.message() == "tag");
         };
 	};
 

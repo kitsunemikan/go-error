@@ -33,7 +33,7 @@ int main()
 {
 	"error_cast"_test = [] {
 		auto test = "test";
-		go::error_string errStr(test);
+		auto errStr = go::make_error<go::error_string>(test);
 		go::error err(errStr);
 		
 		should("cast to the parent type succeeds") = [&] {
@@ -53,7 +53,7 @@ int main()
 		};
 
 		should("cast to an intermediate type in the inheritance hierarchy succeeds") = [] {
-			error_my_2 errMy2(true);
+			auto errMy2 = go::make_error<error_my_2>(true);
 			go::error err(errMy2);
 
 			auto errMy2Cast = go::error_cast<error_my_2>(err);
@@ -68,7 +68,7 @@ int main()
 		};
 
 		should("cast to a raw impl pointer in hierarchy succeeds") = [] {
-			error_my_2 errMy2(true);
+			auto errMy2 = go::make_error<error_my_2>(true);
 			go::error err(errMy2);
 
 			error_my_2_data* rawImpl2 = go::error_cast<error_my_2_data*>(err);

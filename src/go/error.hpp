@@ -5,6 +5,8 @@
 #include <memory>
 #include <vector>
 
+#include <go/detail/meta_helpers.hpp>
+
 namespace go
 {
 	namespace detail
@@ -69,12 +71,10 @@ namespace go
 	template <class... Targets>
 	struct is_interface;
 
-    /*! \cond TEMPLATE_DETAILS */
-
+    /// \cond TEMPLATE_DETAILS
 	template <class Target, class... Rest>
 	struct is_interface<Target, Rest...> : public is_interface<Target>, public is_interface<Rest...> {};
-
-    /*! \endcond */
+    /// \endcond
 
     /// Enables custom logic in `go::is_error` for errors.
 	template <class Target>
@@ -89,12 +89,10 @@ namespace go
 	template <class... Targets>
 	struct as_interface;
 
-    /*! \cond TEMPLATE_DETAILS */
-
+    /// \cond TEMPLATE_DETAILS
 	template <class Target, class... Rest>
 	struct as_interface<Target, Rest...> : public as_interface<Target>, public as_interface<Rest...> {};
-
-    /*! \endcond */
+    /// \endcond
 
     /// Enables custom logic in `go::as_error` for errors.
 	template <class Target>
@@ -121,19 +119,19 @@ namespace go
      * to the error data objects that represent actual implementations, like `MyError*`
      * and that are retrieved by type assertions, like `myErr := err.(MyError*)` in go.
      *
-     * The error type can be either empty or contain an instance of error data. As
-     * in go, the error type may be non-empty while underlying data is null. This is
-     * one of the quirks of the go errors that the users need to be aware of
+     * The error type can be either empty or contain an instance of error data. Unlike
+     * go, the error type is empty only when underlying data is null. This is in contrast
+     * to go where it is one of the quirks that the users need to be aware of
      *
      * ```
-     * auto quirkExample() -> error {
+     * func quirkExample() error {
      *     // Zero-initialized
-     *     auto err = std::shared_ptr<MyError>();
+     *     var err *MyError
      *
      *     if (...)
      *     {
      *         // Updated error with value if something goes wrong
-     *         err = std::make_shared<MyError>();
+     *         err = &MyError{}
      *     }
      *
      *     // In case of no error a null MyError*
@@ -190,17 +188,6 @@ namespace go
 		error_of(std::shared_ptr<Impl> underlying)
 		{
 			err_ = std::move(underlying);
-		}
-
-        /// Construct via error data constructor.
-		template <
-			class T,
-			class... Ts,
-			class = std::enable_if_t<!std::is_same_v<Impl, error_interface>>
-		>
-		explicit error_of(T&& arg1, Ts&&... args)
-		{
-			err_ = std::make_shared<Impl>(std::forward<T>(arg1), std::forward<Ts>(args)...);
 		}
 
         /// False if error is empty, false otherwise. `data()` may still be null.
@@ -295,6 +282,45 @@ namespace go
      * and `go::as_error` to introspect errors.
      */
 	using error = error_of<error_interface>;
+
+    /// \cond TEMPLATE_DETAILS
+    namespace detail
+    {
+        template <class ErrorType>
+        struct make_error_impl
+        {
+            template <class... Args>
+            static auto make(Args&&... args) -> ErrorType
+            {
+                static_assert(always_false<ErrorType>, "ErrorType should a valid go::error_of<T>");
+            }
+        };
+
+        template <class Impl>
+        struct make_error_impl<error_of<Impl>>
+        {
+            template <class... Args>
+            static auto make(Args&&... args) -> error_of<Impl>
+            {
+                auto impl = std::make_shared<Impl>(std::forward<Args>(args)...);
+                return error_of<Impl>(std::move(impl));
+            }
+        };
+    } // namespace detail
+    /// \endcond
+
+    /// Generator function that constructs error_of types via error data constructor.
+    /*!
+     * `ErrorType` should be an instantiation of `go::error_of`.
+     */
+    template <
+        class ErrorType,
+        class... Args
+    >
+    auto make_error(Args&&... args) -> ErrorType
+    {
+        return detail::make_error_impl<ErrorType>::make(std::forward<Args>(args)...);
+    }
 
     /*! @} */
 }

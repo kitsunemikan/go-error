@@ -22,6 +22,7 @@ target_sources(go-error PRIVATE
     src/go/error_cast.hpp
     src/go/errorf.hpp
     src/go/wrap.hpp
+    src/go/detail/meta_helpers.hpp
 )
 target_include_directories(go-error PUBLIC
     src/

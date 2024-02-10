@@ -5,7 +5,7 @@
 
 namespace go
 {
-    /*! \cond TEMPLATE_DETAILS */
+    /// \cond TEMPLATE_DETAILS
 	namespace detail
 	{
         /*! \brief wrapping_impl is befriended by `go::error_of`, so that implementations
@@ -161,8 +161,7 @@ namespace go
 				return false;
 			}
 		};
-	}
-
+	} // namespace detail
     /// \endcond
 
     /*! \addtogroup wrapping

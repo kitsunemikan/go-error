@@ -1,6 +1,7 @@
 #pragma once
 
 #include <go/error.hpp>
+#include <go/detail/meta_helpers.hpp>
 
 #include <optional>
 
@@ -13,14 +14,6 @@ namespace go
 		template <class To, class From>
 		struct error_cast_impl
 		{
-            /// \brief always_false can be used in static asserts to uncoditionally
-            /// fail compilation, but only at instantiation stage
-			template <class T>
-			struct always_false
-			{
-				static constexpr bool value = false;
-			};
-
 			static To cast(const error_of<From>&)
 			{
 				static_assert(always_false<To>::value, "unsupported error_cast");

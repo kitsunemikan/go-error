@@ -24,11 +24,11 @@ go::error oops()
 {
     auto now = std::chrono::system_clock::now();
 
-    error_my_data err;
-    err.when = std::chrono::system_clock::to_time_t(now);
-    err.what = "the file system has gone away";
+    auto err = go::make_error<error_my>();
+    err->when = std::chrono::system_clock::to_time_t(now);
+    err->what = "the file system has gone away";
 
-    return error_my(err);
+    return err;
 }
 
 int main()
