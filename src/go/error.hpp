@@ -192,17 +192,6 @@ namespace go
 			err_ = std::move(underlying);
 		}
 
-        /// Construct via error data constructor.
-		template <
-			class T,
-			class... Ts,
-			class = std::enable_if_t<!std::is_same_v<Impl, error_interface>>
-		>
-		explicit error_of(T&& arg1, Ts&&... args)
-		{
-			err_ = std::make_shared<Impl>(std::forward<T>(arg1), std::forward<Ts>(args)...);
-		}
-
         /// False if error is empty, false otherwise. `data()` may still be null.
 		operator bool() const noexcept
 		{
@@ -295,6 +284,42 @@ namespace go
      * and `go::as_error` to introspect errors.
      */
 	using error = error_of<error_interface>;
+
+
+    namespace detail
+    {
+
+        template <class ErrorType>
+        struct make_error_impl
+        {
+            template <class... Args>
+            static auto make(Args&&... args) -> ErrorType
+            {
+                static_assert(always_false<ErrorType>, "ErrorType should a valid go::error_of<T>");
+            }
+        };
+
+        template <class Impl>
+        struct make_error_impl<error_of<Impl>>
+        {
+            template <class... Args>
+            static auto make(Args&&... args) -> error_of<Impl>
+            {
+                auto impl = std::make_shared<Impl>(std::forward<Args>(args)...);
+                return error_of<Impl>(std::move(impl));
+            }
+        };
+    }
+
+    /// Construct via error data constructor.
+    template <
+        class ErrorType,
+        class... Args
+    >
+    auto make_error(Args&&... args) -> ErrorType
+    {
+        return detail::make_error_impl<ErrorType>::make(std::forward<Args>(args)...);
+    }
 
     /*! @} */
 }

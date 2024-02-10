@@ -25,7 +25,7 @@ namespace go
 		std::stringstream stream;
 		(stream << ... << std::forward<Ts>(args));
 
-		return go::error_string(stream.str());
+		return go::make_error<go::error_string>(stream.str());
 	}
 
     /*! @} */

@@ -121,8 +121,8 @@ using error_multi = go::error_of<error_multi_data>;
 using error_T = go::error_of<error_T_data>;
 using error_fs_path = go::error_of<error_fs_path_data>;
 
-auto poserPathErr = error_fs_path("poser");
-auto poserErrT = error_T("poser");
+auto poserPathErr = go::make_error<error_fs_path>("poser");
+auto poserErrT = go::make_error<error_T>("poser");
 
 struct error_poser_data :
 	public go::error_interface,
@@ -208,14 +208,22 @@ std::pair<std::ifstream, go::error> openFile(std::filesystem::path name)
 	if (name.empty())
 	{
 		auto ec = std::make_error_code(std::errc::no_such_file_or_directory);
-		return { std::ifstream{}, error_fs_path("open", name.string(), go::error_code(ec))};
+        auto errEc = go::make_error<go::error_code>(ec);
+		return {
+            std::ifstream{},
+            go::make_error<error_fs_path>("open", name.string(), errEc)
+        };
 	}
 
 	std::error_code ec;
 	auto status = std::filesystem::status(name, ec);
 	if (ec)
 	{
-		return { std::ifstream{}, error_fs_path("open: get status", name.string(), go::error_code(ec))};
+        auto errEc = go::make_error<go::error_code>(ec);
+		return {
+            std::ifstream{},
+            go::make_error<error_fs_path>("open: get status", name.string(), errEc)
+        };
 	}
 
 	return { std::ifstream(name.string()), go::error() };
@@ -261,17 +269,17 @@ int main()
 	"is"_test = []
 	{
 		auto err1 = go::errorf("1");
-		auto erra = error_wrapped("wrap 2", err1);
-		auto errb = error_wrapped("wrap 3", erra);
+		auto erra = go::make_error<error_wrapped>("wrap 2", err1);
+		auto errb = go::make_error<error_wrapped>("wrap 3", erra);
 
 		auto err3 = go::errorf("3");
 
-		auto poser = error_poser("either 1 or 3", [&](go::error err)
+		auto poser = go::make_error<error_poser>("either 1 or 3", [&](go::error err)
 		{
 			return err == err1 || err == err3;
 		});
 
-		auto poser2 = error_poser_with_is_overload("either wrapped or poser");
+		auto poser2 = go::make_error<error_poser_with_is_overload>("either wrapped or poser");
 
 		struct test_case
 		{
@@ -292,17 +300,17 @@ int main()
 			{poser, err3, true},
 			{poser, erra, false},
 			{poser, errb, false},
-			{error_multi{}, err1, false},
-			{error_multi{err1, err3}, err1, true},
-			{error_multi{err3, err1}, err1, true},
-			{error_multi{err1, err3}, go::errorf("x"), false},
-			{error_multi{err3, errb}, errb, true},
-			{error_multi{err3, errb}, erra, true},
-			{error_multi{err3, errb}, err1, true},
-			{error_multi{errb, err3}, err1, true},
-			{error_multi{poser}, err1, true},
-			{error_multi{poser}, err3, true},
-			{error_multi{go::error{}}, {}, false},
+			{go::make_error<error_multi>(), err1, false},
+			{go::make_error<error_multi>(err1, err3), err1, true},
+			{go::make_error<error_multi>(err3, err1), err1, true},
+			{go::make_error<error_multi>(err1, err3), go::errorf("x"), false},
+			{go::make_error<error_multi>(err3, errb), errb, true},
+			{go::make_error<error_multi>(err3, errb), erra, true},
+			{go::make_error<error_multi>(err3, errb), err1, true},
+			{go::make_error<error_multi>(errb, err3), err1, true},
+			{go::make_error<error_multi>(poser), err1, true},
+			{go::make_error<error_multi>(poser), err3, true},
+			{go::make_error<error_multi>(go::error{}), {}, false},
 		};
 
 		for (auto& test : testCases)
@@ -348,50 +356,66 @@ int main()
 		void* any;
 		error_poser p;
 		auto [_, errF] = openFile("non-existing");
-		error_poser poserErr("oh no", nilPoserFn);
+		auto poserErr = go::make_error<error_poser>("oh no", nilPoserFn);
 
-		error_T errA("a"), errB("b"), errT("T");
+        auto errA = go::make_error<error_T>("a");
+        auto errB = go::make_error<error_T>("b");
+        auto errT = go::make_error<error_T>("T");
 
 		asTestCase<error_fs_path>({}, false, {});
 		asTestCase<error_T>(
-			error_wrapped("pitied the fool", errT),
+			go::make_error<error_wrapped>("pitied the fool", errT),
 			true,
 			errT);
 		asTestCase<error_fs_path>(errF, true, errF);
 		asTestCase<error_fs_path>(error_T(), false, {});
-		asTestCase<error_T>(error_wrapped("wrapped", go::error()), false, {});
-		asTestCase<error_T>(error_poser("error", nilPoserFn), true, poserErrT);
-		asTestCase<error_fs_path>(error_poser("path", nilPoserFn), true, poserPathErr);
+		asTestCase<error_T>(
+                go::make_error<error_wrapped>("wrapped", go::error()),
+                false,
+                {});
+		asTestCase<error_T>(
+                go::make_error<error_poser>("error", nilPoserFn),
+                true,
+                poserErrT);
+		asTestCase<error_fs_path>(
+                go::make_error<error_poser>("path", nilPoserFn),
+                true,
+                poserPathErr);
 		asTestCase<error_poser>(poserErr, true, poserErr);
 		asTestCase<can_timeout*>(go::errorf("err"), false, {});
 		asTestCase<can_timeout*>(errF, true, errF);
-		asTestCase<can_timeout*>(error_wrapped("path error", errF), true, errF);
+		asTestCase<can_timeout*>(
+                go::make_error<error_wrapped>("path error", errF),
+                true,
+                errF);
 		asTestCase<void*>(errF, true, errF);
-		asTestCase<error_T>(error_multi(), false, {});
+		asTestCase<error_T>(go::make_error<error_multi>(), false, {});
 		asTestCase<error_T>(
-			error_multi(go::errorf("a"), errT),
+			go::make_error<error_multi>(go::errorf("a"), errT),
 			true,
 			errT);
 		asTestCase<error_T>(
-			error_multi(errT, go::errorf("a")),
+			go::make_error<error_multi>(errT, go::errorf("a")),
 			true,
 			errT);
 		asTestCase<error_T>(
-			error_multi(errA, errB),
+			go::make_error<error_multi>(errA, errB),
 			true,
 			errA);
 		asTestCase<error_T>(
-			error_multi(
-				error_multi(go::errorf("a"), errA),
+			go::make_error<error_multi>(
+				go::make_error<error_multi>(go::errorf("a"), errA),
 				errB),
 			true,
 			errA);
 		asTestCase<can_timeout*>(
-			error_multi(error_wrapped("path error", errF)),
+			go::make_error<error_multi>(
+                go::make_error<error_wrapped>("path error", errF)
+            ),
 			true,
 			errF);
 		asTestCase<error_T>(
-			error_multi(go::error()),
+			go::make_error<error_multi>(go::error()),
 			false,
 			{});
 	};
@@ -428,7 +452,7 @@ int main()
 		};
 
 		auto err1 = go::errorf("1");
-		auto erra = error_wrapped{ "wrap 2", err1 };
+		auto erra = go::make_error<error_wrapped>("wrap 2", err1);
 
 		struct testCase
 		{
@@ -437,10 +461,10 @@ int main()
 
 		std::vector<testCase> testCases{
 			{go::error(), go::error()},
-			{error_wrapped{"wrapped", go::error()}, go::error()},
+			{go::make_error<error_wrapped>("wrapped", go::error()), go::error()},
 			{err1, go::error()},
 			{erra, err1},
-			{error_wrapped{"wrap 3", erra}, erra},
+			{go::make_error<error_wrapped>("wrap 3", erra), erra},
 		};
 
 		for (auto&& tc : testCases)
@@ -459,7 +483,7 @@ int main()
 	"pure_wrapped"_test = []
 	{
 		auto err1 = go::errorf("error");
-		auto err2 = error_pure_wrapped(err1);
+		auto err2 = go::make_error<error_pure_wrapped>(err1);
 		go::error errErased = err2;
 
 		auto errUnwrapped = errErased.unwrap();

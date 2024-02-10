@@ -8,7 +8,7 @@ int main()
 	"error_code"_test = [] {
 		should("error_code from an existing std::error_code") = [] {
 			auto ec = std::make_error_code(std::errc::operation_canceled);
-			go::error_code errEc(ec);
+			auto errEc = go::make_error<go::error_code>(ec);
 
 			expect(errEc.data()->code() == ec)
 				<< "got error code" << errEc.data()->code().value() << "want" << ec.value();
