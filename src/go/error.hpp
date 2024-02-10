@@ -121,19 +121,19 @@ namespace go
      * to the error data objects that represent actual implementations, like `MyError*`
      * and that are retrieved by type assertions, like `myErr := err.(MyError*)` in go.
      *
-     * The error type can be either empty or contain an instance of error data. As
-     * in go, the error type may be non-empty while underlying data is null. This is
-     * one of the quirks of the go errors that the users need to be aware of
+     * The error type can be either empty or contain an instance of error data. Unlike
+     * go, the error type is empty only when underlying data is null. This is in contrast
+     * to go where it is one of the quirks that the users need to be aware of
      *
      * ```
-     * auto quirkExample() -> error {
+     * func quirkExample() error {
      *     // Zero-initialized
-     *     auto err = std::shared_ptr<MyError>();
+     *     var err *MyError
      *
      *     if (...)
      *     {
      *         // Updated error with value if something goes wrong
-     *         err = std::make_shared<MyError>();
+     *         err = &MyError{}
      *     }
      *
      *     // In case of no error a null MyError*

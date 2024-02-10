@@ -5,6 +5,15 @@
 #include <boost/ut.hpp>
 using namespace boost::ut;
 
+struct error_tag_data : public go::error_string_data
+{
+    error_tag_data() :
+        go::error_string_data("tag")
+    {}
+};
+
+using error_tag = go::error_of<error_tag_data>;
+
 int main()
 {
 	"generic error"_test = [] {
@@ -87,6 +96,16 @@ int main()
             expect(errCode->code() == stdCode);
             expect(errCode->code().message() == stdCode.message());
             expect(errCode->value() == stdCode.value());
+        };
+
+        should("make_error with no arguments creates a non-empty error") = [] {
+
+            auto errCtor = error_tag();
+            auto errMade = go::make_error<error_tag>();
+
+            expect(errCtor == false);
+            expect(errMade == true);
+            expect(errMade.message() == "tag");
         };
 	};
 
